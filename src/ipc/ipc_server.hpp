@@ -5,6 +5,7 @@
 #include <QLocalSocket>
 #include <QString>
 #include <QByteArray>
+#include <QMap>
 #include <functional>
 #include <nlohmann/json.hpp>
 
