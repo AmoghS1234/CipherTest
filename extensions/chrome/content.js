@@ -128,13 +128,313 @@
         parent.appendChild(button);
     }
     
+    // Create styled modal dialog
+    function createModal(title, content, buttons) {
+        const overlay = document.createElement('div');
+        overlay.className = 'ciphermesh-modal-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        `;
+        
+        const modal = document.createElement('div');
+        modal.className = 'ciphermesh-modal';
+        modal.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            max-width: 450px;
+            width: 90%;
+            animation: ciphermesh-modal-appear 0.2s ease-out;
+        `;
+        
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 24px;
+            border-radius: 12px 12px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        header.innerHTML = `🔐 ${title}`;
+        
+        const body = document.createElement('div');
+        body.style.cssText = `
+            padding: 24px;
+            color: #333;
+        `;
+        body.appendChild(content);
+        
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            padding: 16px 24px;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        `;
+        
+        buttons.forEach(btn => footer.appendChild(btn));
+        
+        modal.appendChild(header);
+        modal.appendChild(body);
+        modal.appendChild(footer);
+        overlay.appendChild(modal);
+        
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ciphermesh-modal-appear {
+                from {
+                    opacity: 0;
+                    transform: scale(0.9) translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        return overlay;
+    }
+    
+    // Show master password input dialog
+    function showMasterPasswordDialog() {
+        return new Promise((resolve) => {
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
+                    Enter your CipherMesh master password to continue
+                </p>
+                <input type="password" id="ciphermesh-master-pwd" 
+                    placeholder="Master password" 
+                    style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 2px solid #e0e0e0;
+                        border-radius: 8px;
+                        font-size: 15px;
+                        box-sizing: border-box;
+                        transition: border-color 0.2s;
+                        font-family: inherit;
+                    "
+                />
+            `;
+            
+            const input = content.querySelector('#ciphermesh-master-pwd');
+            input.addEventListener('focus', () => {
+                input.style.borderColor = '#667eea';
+                input.style.outline = 'none';
+            });
+            input.addEventListener('blur', () => {
+                input.style.borderColor = '#e0e0e0';
+            });
+            
+            const okButton = document.createElement('button');
+            okButton.textContent = 'Unlock';
+            okButton.style.cssText = `
+                padding: 10px 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.1s, box-shadow 0.2s;
+            `;
+            okButton.addEventListener('mouseenter', () => {
+                okButton.style.transform = 'translateY(-1px)';
+                okButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+            });
+            okButton.addEventListener('mouseleave', () => {
+                okButton.style.transform = 'translateY(0)';
+                okButton.style.boxShadow = 'none';
+            });
+            
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.style.cssText = `
+                padding: 10px 24px;
+                background: white;
+                color: #666;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            `;
+            cancelButton.addEventListener('mouseenter', () => {
+                cancelButton.style.borderColor = '#999';
+                cancelButton.style.color = '#333';
+            });
+            cancelButton.addEventListener('mouseleave', () => {
+                cancelButton.style.borderColor = '#e0e0e0';
+                cancelButton.style.color = '#666';
+            });
+            
+            const modal = createModal('Master Password', content, [cancelButton, okButton]);
+            
+            const submit = () => {
+                const password = input.value;
+                document.body.removeChild(modal);
+                resolve(password);
+            };
+            
+            okButton.addEventListener('click', submit);
+            cancelButton.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(null);
+            });
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submit();
+            });
+            
+            document.body.appendChild(modal);
+            setTimeout(() => input.focus(), 100);
+        });
+    }
+    
+    // Show confirmation dialog
+    function showConfirmDialog(message, title = 'Confirm') {
+        return new Promise((resolve) => {
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <p style="margin: 0; color: #555; font-size: 15px; line-height: 1.5;">
+                    ${message}
+                </p>
+            `;
+            
+            const yesButton = document.createElement('button');
+            yesButton.textContent = 'Yes';
+            yesButton.style.cssText = `
+                padding: 10px 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.1s, box-shadow 0.2s;
+            `;
+            yesButton.addEventListener('mouseenter', () => {
+                yesButton.style.transform = 'translateY(-1px)';
+                yesButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+            });
+            yesButton.addEventListener('mouseleave', () => {
+                yesButton.style.transform = 'translateY(0)';
+                yesButton.style.boxShadow = 'none';
+            });
+            
+            const noButton = document.createElement('button');
+            noButton.textContent = 'No';
+            noButton.style.cssText = `
+                padding: 10px 24px;
+                background: white;
+                color: #666;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            `;
+            noButton.addEventListener('mouseenter', () => {
+                noButton.style.borderColor = '#999';
+                noButton.style.color = '#333';
+            });
+            noButton.addEventListener('mouseleave', () => {
+                noButton.style.borderColor = '#e0e0e0';
+                noButton.style.color = '#666';
+            });
+            
+            const modal = createModal(title, content, [noButton, yesButton]);
+            
+            yesButton.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(true);
+            });
+            
+            noButton.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(false);
+            });
+            
+            document.body.appendChild(modal);
+        });
+    }
+    
+    // Show alert dialog
+    function showAlertDialog(message, title = 'CipherMesh', isError = false) {
+        return new Promise((resolve) => {
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <p style="margin: 0; color: #555; font-size: 15px; line-height: 1.5;">
+                    ${message}
+                </p>
+            `;
+            
+            const okButton = document.createElement('button');
+            okButton.textContent = 'OK';
+            okButton.style.cssText = `
+                padding: 10px 32px;
+                background: ${isError ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.1s, box-shadow 0.2s;
+            `;
+            okButton.addEventListener('mouseenter', () => {
+                okButton.style.transform = 'translateY(-1px)';
+                okButton.style.boxShadow = `0 4px 12px ${isError ? 'rgba(245, 87, 108, 0.4)' : 'rgba(102, 126, 234, 0.4)'}`;
+            });
+            okButton.addEventListener('mouseleave', () => {
+                okButton.style.transform = 'translateY(0)';
+                okButton.style.boxShadow = 'none';
+            });
+            
+            const modal = createModal(title, content, [okButton]);
+            
+            okButton.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve();
+            });
+            
+            document.body.appendChild(modal);
+            okButton.focus();
+        });
+    }
+    
     // Handle auto-fill button click
     async function handleAutoFill(passwordField, usernameField) {
         const url = window.location.hostname;
         const username = usernameField ? usernameField.value : '';
         
-        // Request master password
-        const masterPassword = prompt('Enter your CipherMesh master password:');
+        // Request master password with styled dialog
+        const masterPassword = await showMasterPasswordDialog();
         if (!masterPassword) return;
         
         // Verify master password first
@@ -145,11 +445,11 @@
             });
             
             if (!verifyResponse.success || !verifyResponse.verified) {
-                alert('Incorrect master password');
+                await showAlertDialog('The master password you entered is incorrect.', 'Incorrect Password', true);
                 return;
             }
         } catch (error) {
-            alert('Failed to verify password: ' + error.message);
+            await showAlertDialog('Failed to verify password: ' + error.message, 'Error', true);
             return;
         }
         
@@ -165,18 +465,19 @@
                 const entries = response.data.entries;
                 
                 if (entries.length === 0) {
-                    alert('No credentials found for this site');
+                    await showAlertDialog('No credentials found for this site in your vault.', 'No Credentials');
                 } else if (entries.length === 1) {
                     fillCredentials(entries[0], usernameField, passwordField);
+                    await showAlertDialog('Credentials filled successfully!', 'Success');
                 } else {
                     // Multiple entries - let user choose
                     showCredentialSelector(entries, usernameField, passwordField);
                 }
             } else {
-                alert('Failed to get credentials: ' + (response.error || 'Unknown error'));
+                await showAlertDialog('Failed to get credentials: ' + (response.error || 'Unknown error'), 'Error', true);
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            await showAlertDialog('Error: ' + error.message, 'Error', true);
         }
     }
     
@@ -262,8 +563,12 @@
         }).then(response => {
             if (response.success && response.data.entries && response.data.entries.length === 0) {
                 // No existing entry - ask to save
-                setTimeout(() => {
-                    if (confirm('Save this password to CipherMesh?')) {
+                setTimeout(async () => {
+                    const shouldSave = await showConfirmDialog(
+                        `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                        'Save Password'
+                    );
+                    if (shouldSave) {
                         promptSaveCredentials(url, username, password);
                     }
                 }, 500);
@@ -273,9 +578,93 @@
         });
     }
     
+    // Show group selector dialog
+    function showGroupSelector(groups) {
+        return new Promise((resolve) => {
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
+                    Choose which group to save this password to
+                </p>
+                <div id="ciphermesh-group-list" style="
+                    max-height: 300px;
+                    overflow-y: auto;
+                "></div>
+            `;
+            
+            const groupList = content.querySelector('#ciphermesh-group-list');
+            
+            groups.forEach((group, index) => {
+                const groupBtn = document.createElement('button');
+                groupBtn.textContent = group;
+                groupBtn.style.cssText = `
+                    display: block;
+                    width: 100%;
+                    padding: 12px 16px;
+                    margin-bottom: 8px;
+                    background: white;
+                    color: #333;
+                    border: 2px solid ${index === 0 ? '#667eea' : '#e0e0e0'};
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    text-align: left;
+                    transition: all 0.2s;
+                `;
+                
+                groupBtn.addEventListener('mouseenter', () => {
+                    groupBtn.style.borderColor = '#667eea';
+                    groupBtn.style.background = '#f8f9ff';
+                });
+                groupBtn.addEventListener('mouseleave', () => {
+                    groupBtn.style.borderColor = index === 0 ? '#667eea' : '#e0e0e0';
+                    groupBtn.style.background = 'white';
+                });
+                groupBtn.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    resolve(group);
+                });
+                
+                groupList.appendChild(groupBtn);
+            });
+            
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.style.cssText = `
+                padding: 10px 24px;
+                background: white;
+                color: #666;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            `;
+            cancelButton.addEventListener('mouseenter', () => {
+                cancelButton.style.borderColor = '#999';
+                cancelButton.style.color = '#333';
+            });
+            cancelButton.addEventListener('mouseleave', () => {
+                cancelButton.style.borderColor = '#e0e0e0';
+                cancelButton.style.color = '#666';
+            });
+            
+            const modal = createModal('Select Group', content, [cancelButton]);
+            
+            cancelButton.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(null);
+            });
+            
+            document.body.appendChild(modal);
+        });
+    }
+    
     // Prompt to save credentials
     async function promptSaveCredentials(url, username, password) {
-        const masterPassword = prompt('Enter your CipherMesh master password to save:');
+        const masterPassword = await showMasterPasswordDialog();
         if (!masterPassword) return;
         
         // Verify master password
@@ -286,11 +675,11 @@
             });
             
             if (!verifyResponse.success || !verifyResponse.verified) {
-                alert('Incorrect master password');
+                await showAlertDialog('The master password you entered is incorrect.', 'Incorrect Password', true);
                 return;
             }
         } catch (error) {
-            alert('Failed to verify password: ' + error.message);
+            await showAlertDialog('Failed to verify password: ' + error.message, 'Error', true);
             return;
         }
         
@@ -302,12 +691,13 @@
             
             if (groupsResponse.success && groupsResponse.groups) {
                 const groups = groupsResponse.groups;
-                let groupName = 'Default';
+                let groupName = groups[0] || 'Default';
                 
                 if (groups.length > 1) {
                     // Show group selector
-                    groupName = prompt('Choose group:\n' + groups.join('\n') + '\n\nEnter group name:', groups[0]);
-                    if (!groupName) return;
+                    const selected = await showGroupSelector(groups);
+                    if (!selected) return;
+                    groupName = selected;
                 }
                 
                 // Save credentials
@@ -321,13 +711,13 @@
                 });
                 
                 if (saveResponse.success) {
-                    alert('Password saved to CipherMesh!');
+                    await showAlertDialog(`Password for <strong>${username}</strong> has been saved to group <strong>${groupName}</strong>!`, 'Password Saved');
                 } else {
-                    alert('Failed to save: ' + (saveResponse.error || 'Unknown error'));
+                    await showAlertDialog('Failed to save: ' + (saveResponse.error || 'Unknown error'), 'Error', true);
                 }
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            await showAlertDialog('Error: ' + error.message, 'Error', true);
         }
     }
     
