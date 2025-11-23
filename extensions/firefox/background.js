@@ -92,7 +92,11 @@ function handleNativeMessage(message) {
 // Handle messages from content scripts
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Log message type only, not sensitive data
-    console.log("Message from content script:", { type: message.type, url: message.url || '' });
+    if (message.type === "VERIFY_MASTER_PASSWORD") {
+        console.log("Message from content script:", { type: message.type, hasPassword: !!message.password });
+    } else {
+        console.log("Message from content script:", { type: message.type, url: message.url || '' });
+    }
     
     switch (message.type) {
         case "GET_CREDENTIALS":

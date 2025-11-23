@@ -41,6 +41,19 @@ bool IPCClient::connect() {
         return false;
     }
     
+    // Set socket timeout to 5 seconds
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        std::cerr << "Failed to set receive timeout: " << strerror(errno) << std::endl;
+    }
+    
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+        std::cerr << "Failed to set send timeout: " << strerror(errno) << std::endl;
+    }
+    
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
@@ -56,6 +69,7 @@ bool IPCClient::connect() {
     }
     
     connected = true;
+    std::cerr << "IPC Client connected successfully to " << socketPath << std::endl;
     return true;
 }
 
@@ -75,9 +89,14 @@ json IPCClient::sendMessage(const json& message) {
     try {
         // Send message as JSON string with newline delimiter
         std::string messageStr = message.dump() + "\n";
+        std::cerr << "IPC Client sending: " << message.dump() << std::endl;
         
         ssize_t sent = send(sockfd, messageStr.c_str(), messageStr.length(), 0);
         if (sent < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                std::cerr << "Send timeout" << std::endl;
+                return {{"success", false}, {"error", "Send timeout"}};
+            }
             std::cerr << "Failed to send message: " << strerror(errno) << std::endl;
             return {{"success", false}, {"error", "Failed to send message"}};
         }
@@ -90,6 +109,10 @@ json IPCClient::sendMessage(const json& message) {
             ssize_t received = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
             if (received <= 0) {
                 if (received < 0) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        std::cerr << "Receive timeout - no response from desktop app" << std::endl;
+                        return {{"success", false}, {"error", "Timeout waiting for response"}};
+                    }
                     std::cerr << "Failed to receive response: " << strerror(errno) << std::endl;
                 }
                 return {{"success", false}, {"error", "Failed to receive response"}};
@@ -104,11 +127,14 @@ json IPCClient::sendMessage(const json& message) {
             }
         }
         
+        std::cerr << "IPC Client received: " << response << std::endl;
+        
         // Parse JSON response
         try {
             return json::parse(response);
         } catch (const json::exception& e) {
             std::cerr << "Failed to parse response: " << e.what() << std::endl;
+            std::cerr << "Response was: " << response << std::endl;
             return {{"success", false}, {"error", "Invalid JSON response"}};
         }
         

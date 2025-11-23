@@ -71,7 +71,17 @@ vim extensions/firefox/content.js
 - **Content Script Logs**:
   - Open Developer Tools on the web page (`F12`)
   - Go to Console tab
-  - Look for logs from content.js
+  - Look for logs from content.js prefixed with `[CipherMesh]`
+
+- **Native Host Logs**:
+  - The native host writes to stderr
+  - To see logs, run it manually from terminal:
+    ```bash
+    cd build/extensions/native-host
+    ./ciphermesh-native-host
+    ```
+  - Then use the extension - you'll see all IPC communication in the terminal
+  - Look for messages like "IPC Client sending:", "IPC Client received:", "Failed to connect"
 
 **Common Issues:**
 
@@ -79,16 +89,28 @@ vim extensions/firefox/content.js
    - Did you reload the extension? (`about:debugging` → Reload)
    - Did you reload the web page? (Press `Ctrl+R`)
    - Check Console for errors (`F12` → Console)
+   - Check if CipherMesh desktop app is running
 
 2. **Changes not reflecting**
    - Browser caches extension files
    - Use "Remove" then "Re-add" instead of just "Reload"
    - Or restart the browser completely
 
-3. **Native messaging not working**
+3. **Native messaging not working / "quite a while" for responses**
    - Make sure CipherMesh desktop app is running
-   - Check that native host was built: `build/extensions/native-host/ciphermesh-native-host`
+   - Check that vault is **unlocked** in desktop app (this is critical!)
+   - Check native host was built: `build/extensions/native-host/ciphermesh-native-host`
    - Verify manifest was installed: `~/.mozilla/native-messaging-hosts/com.ciphermesh.native.json`
+   - Check native host logs by running it manually in terminal
+   - Look for "IPC Client connected successfully" in native host output
+   - If you see "Timeout waiting for response", the desktop app isn't responding
+   - **Most common issue**: Vault is locked - unlock it in the desktop app!
+
+4. **Master password incorrect even when it's correct**
+   - Make sure vault is unlocked in desktop app FIRST
+   - The extension verifies against the already-unlocked vault
+   - Check native host logs - it will show if connection fails
+   - Look for "Failed to verify password" or timeout errors
 
 ### Testing Checklist
 

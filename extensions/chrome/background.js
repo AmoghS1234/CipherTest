@@ -1,5 +1,5 @@
-// Background service worker for CipherMesh Chrome Extension
-// Chrome Manifest V3 version
+// Background script for CipherMesh Firefox Extension
+// Handles native messaging with the desktop app
 
 let nativePort = null;
 let pendingRequests = new Map();
@@ -20,7 +20,7 @@ function connectNative() {
             nativePort = null;
             
             // Notify content scripts that connection is lost
-            chrome.tabs.query({}, (tabs) => {
+            chrome.tabs.query({}).then(tabs => {
                 tabs.forEach(tab => {
                     chrome.tabs.sendMessage(tab.id, {
                         type: "CONNECTION_STATUS",
@@ -92,7 +92,11 @@ function handleNativeMessage(message) {
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Log message type only, not sensitive data
-    console.log("Message from content script:", { type: message.type, url: message.url || '' });
+    if (message.type === "VERIFY_MASTER_PASSWORD") {
+        console.log("Message from content script:", { type: message.type, hasPassword: !!message.password });
+    } else {
+        console.log("Message from content script:", { type: message.type, url: message.url || '' });
+    }
     
     switch (message.type) {
         case "GET_CREDENTIALS":
@@ -168,4 +172,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Initialize connection on startup
 connectNative();
 
-console.log("CipherMesh background service worker loaded");
+console.log("CipherMesh background script loaded");
