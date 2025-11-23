@@ -640,7 +640,7 @@ const QString Style_OceanDark = R"(
     QListWidget::item:selected { 
         background-color: #0c4a6e; 
         color: #ffffff; 
-        border-left: 3px solid #0ea5e9;
+        font-weight: 500;
     }
     QListWidget::item:hover { 
         background-color: #133554; 
@@ -713,7 +713,7 @@ const QString Style_OceanDark = R"(
         color: #b2bac2;
         selection-background-color: #0c4a6e;
         border: 1px solid #1e3a52;
-        border-radius: 4px;
+        outline: none;
     }
     
     /* Buttons */
@@ -786,14 +786,14 @@ const QString Style_OceanDark = R"(
         color: #b2bac2; 
     }
     QLabel#DialogTitle { 
-        font-size: 20px; 
-        font-weight: 700; 
+        font-size: 19px; 
+        font-weight: 600; 
         color: #f0f9ff; 
         margin-bottom: 8px; 
     }
     QLabel#DetailUsername { 
-        font-size: 22px; 
-        font-weight: 700; 
+        font-size: 21px; 
+        font-weight: 600; 
         color: #f0f9ff; 
     }
     QLabel#PlaceholderLabel { 
@@ -815,10 +815,12 @@ const QString Style_OceanDark = R"(
         background-color: #0f2436;
         color: #b2bac2;
         border-bottom: 1px solid #1e3a52;
+        padding: 2px 0px;
     }
     QMenuBar::item {
-        padding: 6px 12px;
+        padding: 6px 14px;
         background-color: transparent;
+        border-radius: 4px;
     }
     QMenuBar::item:selected {
         background-color: #1e3a52;
@@ -828,16 +830,21 @@ const QString Style_OceanDark = R"(
         background-color: #0d2238; 
         border: 1px solid #1e3a52; 
         color: #b2bac2; 
-        border-radius: 4px;
-        padding: 4px;
+        border-radius: 6px;
+        padding: 6px;
     }
     QMenu::item { 
-        padding: 8px 32px 8px 16px;
+        padding: 8px 30px 8px 14px;
         border-radius: 4px;
     }
     QMenu::item:selected { 
         background-color: #0c4a6e; 
         color: #ffffff; 
+    }
+    QMenu::separator {
+        height: 1px;
+        background: #1e3a52;
+        margin: 4px 8px;
     }
     
     /* Splitter */
@@ -862,16 +869,16 @@ const QString Style_OceanDark = R"(
     /* Slider */
     QSlider::groove:horizontal {
         border: 1px solid #1e3a52;
-        height: 6px;
+        height: 5px;
         background: #0d2238;
         border-radius: 3px;
     }
     QSlider::handle:horizontal {
         background: #0ea5e9;
         border: 1px solid #0ea5e9;
-        width: 16px;
-        margin: -6px 0;
-        border-radius: 8px;
+        width: 15px;
+        margin: -5px 0;
+        border-radius: 7px;
     }
     QSlider::handle:horizontal:hover {
         background: #38bdf8;
@@ -926,7 +933,7 @@ const QString Style_WarmLight = R"(
     QListWidget::item:selected { 
         background-color: #fed7aa; 
         color: #7c2d12; 
-        border-left: 3px solid #ea580c;
+        font-weight: 500;
     }
     QListWidget::item:hover { 
         background-color: #fef3c7; 
@@ -1072,14 +1079,14 @@ const QString Style_WarmLight = R"(
         color: #292524; 
     }
     QLabel#DialogTitle { 
-        font-size: 20px; 
-        font-weight: 700; 
+        font-size: 19px; 
+        font-weight: 600; 
         color: #1c1917; 
         margin-bottom: 8px; 
     }
     QLabel#DetailUsername { 
-        font-size: 22px; 
-        font-weight: 700; 
+        font-size: 21px; 
+        font-weight: 600; 
         color: #1c1917; 
     }
     QLabel#PlaceholderLabel { 
@@ -1101,10 +1108,12 @@ const QString Style_WarmLight = R"(
         background-color: #f5f5f4;
         color: #292524;
         border-bottom: 1px solid #e7e5e4;
+        padding: 2px 0px;
     }
     QMenuBar::item {
-        padding: 6px 12px;
+        padding: 6px 14px;
         background-color: transparent;
+        border-radius: 4px;
     }
     QMenuBar::item:selected {
         background-color: #e7e5e4;
@@ -1114,16 +1123,21 @@ const QString Style_WarmLight = R"(
         background-color: #ffffff; 
         border: 1px solid #e7e5e4; 
         color: #292524; 
-        border-radius: 4px;
-        padding: 4px;
+        border-radius: 6px;
+        padding: 6px;
     }
     QMenu::item { 
-        padding: 8px 32px 8px 16px;
+        padding: 8px 30px 8px 14px;
         border-radius: 4px;
     }
     QMenu::item:selected { 
         background-color: #fef3c7; 
         color: #292524; 
+    }
+    QMenu::separator {
+        height: 1px;
+        background: #e7e5e4;
+        margin: 4px 8px;
     }
     
     /* Splitter */
@@ -1148,16 +1162,16 @@ const QString Style_WarmLight = R"(
     /* Slider */
     QSlider::groove:horizontal {
         border: 1px solid #e7e5e4;
-        height: 6px;
+        height: 5px;
         background: #fafaf9;
         border-radius: 3px;
     }
     QSlider::handle:horizontal {
         background: #ea580c;
         border: 1px solid #ea580c;
-        width: 16px;
-        margin: -6px 0;
-        border-radius: 8px;
+        width: 15px;
+        margin: -5px 0;
+        border-radius: 7px;
     }
     QSlider::handle:horizontal:hover {
         background: #f97316;
@@ -1212,7 +1226,7 @@ const QString Style_VibrantColors = R"(
     QListWidget::item:selected { 
         background-color: #ec4899; 
         color: #ffffff; 
-        font-weight: 600;
+        font-weight: 500;
     }
     QListWidget::item:hover:!selected { 
         background-color: #f3f4f6; 
@@ -1389,15 +1403,9 @@ const QString Style_VibrantColors = R"(
         background-color: #ffffff; 
         color: #1f2937; 
         border: 1px solid #d1d5db; 
-        border-radius: 5px; 
         selection-background-color: #ec4899; 
         selection-color: #ffffff; 
         outline: none;
-        padding: 4px;
-    }
-    QComboBox QAbstractItemView::item { 
-        padding: 8px; 
-        border-radius: 4px;
     }
     
     /* Checkbox */
@@ -1428,30 +1436,29 @@ const QString Style_VibrantColors = R"(
         border: none; 
         border-radius: 4px; 
         text-align: center; 
-        height: 8px;
         color: #1f2937;
     }
     QProgressBar::chunk { 
-        border-radius: 4px; 
+        border-radius: 3px; 
         background-color: #8b5cf6;
     }
     
     /* Sliders */
     QSlider::groove:horizontal { 
-        background-color: #e5e7eb; 
-        height: 5px; 
-        border-radius: 3px;
         border: 1px solid #d1d5db;
+        height: 5px; 
+        background: #e5e7eb; 
+        border-radius: 3px;
     }
     QSlider::handle:horizontal { 
-        background-color: #8b5cf6; 
+        background: #8b5cf6; 
+        border: none;
         width: 15px; 
         margin: -5px 0; 
         border-radius: 7px;
-        border: none;
     }
     QSlider::handle:horizontal:hover { 
-        background-color: #7c3aed; 
+        background: #7c3aed; 
     }
     
     /* Menu Bar */
