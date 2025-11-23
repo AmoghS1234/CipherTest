@@ -9,22 +9,30 @@
     
     // Initialize on load
     function initialize() {
+        console.log('[CipherMesh] Initializing content script...');
         // Check connection status
         chrome.runtime.sendMessage({ type: "CHECK_CONNECTION" }).then(response => {
+            console.log('[CipherMesh] Connection check result:', response);
             isConnected = response.connected;
             if (isConnected) {
+                console.log('[CipherMesh] Connected! Scanning for password fields...');
                 scanForPasswordFields();
                 setupMutationObserver();
+            } else {
+                console.log('[CipherMesh] Not connected to desktop app');
             }
-        }).catch(() => {
+        }).catch((error) => {
+            console.error('[CipherMesh] Connection check failed:', error);
             isConnected = false;
         });
     }
     
     // Run immediately if DOM is ready, otherwise wait
     if (document.readyState === 'loading') {
+        console.log('[CipherMesh] DOM still loading, waiting...');
         document.addEventListener('DOMContentLoaded', initialize);
     } else {
+        console.log('[CipherMesh] DOM ready, initializing immediately');
         initialize();
     }
     
@@ -71,13 +79,17 @@
     // Detect password fields on the page
     function scanForPasswordFields() {
         const passwordFields = document.querySelectorAll('input[type="password"]');
+        console.log('[CipherMesh] Found', passwordFields.length, 'password fields');
         
+        let processed = 0;
         passwordFields.forEach(field => {
             if (!field.hasAttribute(CIPHERMESH_MARKER) && isVisible(field)) {
                 field.setAttribute(CIPHERMESH_MARKER, 'true');
                 processPasswordField(field);
+                processed++;
             }
         });
+        console.log('[CipherMesh] Processed', processed, 'password fields');
     }
     
     // Check if element is visible
@@ -131,15 +143,18 @@
     function addAutoFillButton(passwordField, usernameField) {
         // Check if already has button
         if (passwordField.parentElement.querySelector('.ciphermesh-autofill-btn')) {
+            console.log('[CipherMesh] Button already exists for this field');
             return;
         }
         
+        console.log('[CipherMesh] Adding autofill button to password field');
+        
         // Calculate button position to avoid conflicts
-        const fieldRect = passwordField.getBoundingClientRect();
         const computedStyle = window.getComputedStyle(passwordField);
         const paddingRight = parseInt(computedStyle.paddingRight) || 0;
         
         // Check if there are other buttons (like show/hide password)
+        // If padding is large, it likely means there's already a button
         const rightOffset = paddingRight > 30 ? paddingRight + 5 : 5;
         
         const button = document.createElement('button');
@@ -147,6 +162,7 @@
         button.className = 'ciphermesh-autofill-btn';
         button.innerHTML = '🔐';
         button.title = 'Auto-fill with CipherMesh';
+        button.setAttribute('aria-label', 'Auto-fill password with CipherMesh');
         button.style.cssText = `
             position: absolute;
             right: ${rightOffset}px;
@@ -162,6 +178,9 @@
             transition: all 0.2s;
             box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
             line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         `;
         
         button.addEventListener('mouseenter', () => {
@@ -179,6 +198,8 @@
         button.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('[CipherMesh] Autofill button clicked');
             await handleAutoFill(passwordField, usernameField);
         });
         
@@ -195,6 +216,7 @@
         }
         
         parent.appendChild(button);
+        console.log('[CipherMesh] Button added successfully');
     }
     
     // Create styled modal dialog
@@ -499,13 +521,20 @@
     
     // Handle auto-fill button click
     async function handleAutoFill(passwordField, usernameField) {
+        console.log('[CipherMesh] Starting autofill process...');
         const url = window.location.hostname;
         const username = usernameField ? usernameField.value : '';
+        console.log('[CipherMesh] URL:', url, 'Username:', username || '(empty)');
         
         // Request master password with styled dialog
+        console.log('[CipherMesh] Requesting master password...');
         const masterPassword = await showMasterPasswordDialog();
-        if (!masterPassword) return;
+        if (!masterPassword) {
+            console.log('[CipherMesh] Master password dialog canceled');
+            return;
+        }
         
+        console.log('[CipherMesh] Verifying master password...');
         // Verify master password first
         try {
             const verifyResponse = await chrome.runtime.sendMessage({
@@ -513,16 +542,29 @@
                 password: masterPassword
             });
             
-            if (!verifyResponse.success || !verifyResponse.verified) {
+            console.log('[CipherMesh] Verify response:', verifyResponse);
+            
+            if (!verifyResponse || !verifyResponse.success) {
+                console.error('[CipherMesh] Verification failed:', verifyResponse);
+                await showAlertDialog('Failed to verify password. Make sure the desktop app is running and vault is unlocked.', 'Connection Error', true);
+                return;
+            }
+            
+            if (!verifyResponse.verified) {
+                console.log('[CipherMesh] Password incorrect');
                 await showAlertDialog('The master password you entered is incorrect.', 'Incorrect Password', true);
                 return;
             }
+            
+            console.log('[CipherMesh] Password verified successfully');
         } catch (error) {
+            console.error('[CipherMesh] Error verifying password:', error);
             await showAlertDialog('Failed to verify password: ' + error.message, 'Error', true);
             return;
         }
         
         // Get credentials
+        console.log('[CipherMesh] Fetching credentials...');
         try {
             const response = await chrome.runtime.sendMessage({
                 type: "GET_CREDENTIALS",
@@ -530,22 +572,29 @@
                 username: username
             });
             
-            if (response.success && response.data.entries) {
+            console.log('[CipherMesh] Credentials response:', response);
+            
+            if (response.success && response.data && response.data.entries) {
                 const entries = response.data.entries;
+                console.log('[CipherMesh] Found', entries.length, 'entries');
                 
                 if (entries.length === 0) {
                     await showAlertDialog('No credentials found for this site in your vault.', 'No Credentials');
                 } else if (entries.length === 1) {
+                    console.log('[CipherMesh] Filling credentials from single entry');
                     fillCredentials(entries[0], usernameField, passwordField);
                     await showAlertDialog('Credentials filled successfully!', 'Success');
                 } else {
                     // Multiple entries - let user choose
-                    showCredentialSelector(entries, usernameField, passwordField);
+                    console.log('[CipherMesh] Multiple entries found, showing selector');
+                    await showCredentialSelector(entries, usernameField, passwordField);
                 }
             } else {
+                console.error('[CipherMesh] Failed to get credentials:', response);
                 await showAlertDialog('Failed to get credentials: ' + (response.error || 'Unknown error'), 'Error', true);
             }
         } catch (error) {
+            console.error('[CipherMesh] Error getting credentials:', error);
             await showAlertDialog('Error: ' + error.message, 'Error', true);
         }
     }
