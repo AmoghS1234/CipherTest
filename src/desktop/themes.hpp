@@ -640,6 +640,7 @@ const QString Style_OceanDark = R"(
     QListWidget::item:selected { 
         background-color: #0c4a6e; 
         color: #ffffff; 
+        border-left: 3px solid #0ea5e9;
         font-weight: 500;
     }
     QListWidget::item:hover { 
@@ -713,6 +714,7 @@ const QString Style_OceanDark = R"(
         color: #b2bac2;
         selection-background-color: #0c4a6e;
         border: 1px solid #1e3a52;
+        border-radius: 4px;
         outline: none;
     }
     
@@ -933,6 +935,7 @@ const QString Style_WarmLight = R"(
     QListWidget::item:selected { 
         background-color: #fed7aa; 
         color: #7c2d12; 
+        border-left: 3px solid #ea580c;
         font-weight: 500;
     }
     QListWidget::item:hover { 
@@ -1403,9 +1406,15 @@ const QString Style_VibrantColors = R"(
         background-color: #ffffff; 
         color: #1f2937; 
         border: 1px solid #d1d5db; 
+        border-radius: 5px; 
         selection-background-color: #ec4899; 
         selection-color: #ffffff; 
         outline: none;
+        padding: 4px;
+    }
+    QComboBox QAbstractItemView::item { 
+        padding: 8px; 
+        border-radius: 4px;
     }
     
     /* Checkbox */
