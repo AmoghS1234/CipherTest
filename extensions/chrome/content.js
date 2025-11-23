@@ -10,20 +10,25 @@
     // Initialize on load
     function initialize() {
         console.log('[CipherMesh] Initializing content script...');
-        // Check connection status
+        
+        // Always scan for password fields immediately, regardless of connection
+        console.log('[CipherMesh] Scanning for password fields...');
+        scanForPasswordFields();
+        setupMutationObserver();
+        
+        // Check connection status in background
         chrome.runtime.sendMessage({ type: "CHECK_CONNECTION" }).then(response => {
             console.log('[CipherMesh] Connection check result:', response);
             isConnected = response.connected;
             if (isConnected) {
-                console.log('[CipherMesh] Connected! Scanning for password fields...');
-                scanForPasswordFields();
-                setupMutationObserver();
+                console.log('[CipherMesh] Connected to desktop app');
             } else {
-                console.log('[CipherMesh] Not connected to desktop app');
+                console.log('[CipherMesh] Not connected to desktop app - buttons will still appear but may not function');
             }
         }).catch((error) => {
             console.error('[CipherMesh] Connection check failed:', error);
             isConnected = false;
+            console.log('[CipherMesh] Buttons will appear but desktop app connection required for functionality');
         });
     }
     
@@ -65,7 +70,8 @@
                 if (shouldScan) break;
             }
             
-            if (shouldScan && isConnected) {
+            if (shouldScan) {
+                console.log('[CipherMesh] Mutation detected, rescanning...');
                 scanForPasswordFields();
             }
         });
@@ -89,7 +95,7 @@
                 processed++;
             }
         });
-        console.log('[CipherMesh] Processed', processed, 'password fields');
+        console.log('[CipherMesh] Processed', processed, 'new password fields');
     }
     
     // Check if element is visible

@@ -1,8 +1,64 @@
 # CipherMesh Browser Extension - Development Guide
 
-## Reloading Extensions During Development
+## Architecture Overview
 
-When you make changes to the extension code, you need to reload it in your browser for the changes to take effect.
+**IMPORTANT: The extension requires the CipherMesh desktop application to be running with an unlocked vault.**
+
+The extension does NOT store passwords itself - it acts as a bridge to the desktop app's encrypted vault:
+- Browser Extension → Native Messaging Host → Unix Socket → Desktop App → Encrypted Vault
+
+This means:
+- Desktop app MUST be running
+- Vault MUST be unlocked for operations to work
+- Extension cannot function offline or without the desktop app
+
+## Common Issues & Solutions
+
+### "Icon doesn't appear when I load a page"
+
+**FIXED in latest version**: Icons now appear immediately regardless of desktop app connection status.
+
+If icons still don't appear:
+1. Reload the extension: `about:debugging` → Reload button
+2. Reload the web page: `Ctrl+R`
+3. Check console (`F12` → Console) for `[CipherMesh]` messages
+4. Look for errors in the logs
+
+### "Returns take 10 seconds" / "Operations are very slow"
+
+**FIXED in latest version**: Timeout reduced from 30s to 5s.
+
+If operations are still slow:
+1. **Check desktop app is running and vault is UNLOCKED** (most common cause!)
+2. Run native host manually to see what's happening:
+   ```bash
+   cd build/extensions/native-host
+   ./ciphermesh-native-host
+   ```
+3. Try the operation again - you'll see detailed logs
+4. Look for "IPC Client connected successfully" or connection errors
+5. If you see timeouts, the desktop app isn't responding
+
+**Common causes:**
+- Vault is locked (unlock it!)
+- Desktop app not running (start it!)
+- IPC socket issues (restart desktop app)
+
+### "Master password is incorrect even when it's right"
+
+This happens when:
+- Vault is locked in desktop app (unlock it first!)
+- Desktop app isn't running
+- IPC connection failed
+
+**The extension verifies the master password against the ALREADY-UNLOCKED vault in the desktop app.**
+You cannot unlock the vault from the extension - unlock it in the desktop app first!
+
+### "Changes don't reflect after editing code"
+
+YES - you MUST reload the extension after making code changes!
+
+## Reloading Extensions During Development
 
 ### Firefox
 

@@ -56,13 +56,13 @@ function sendToNative(message) {
         try {
             nativePort.postMessage(message);
             
-            // Timeout after 30 seconds
+            // Timeout after 5 seconds
             setTimeout(() => {
                 if (pendingRequests.has(id)) {
                     pendingRequests.delete(id);
-                    reject(new Error("Request timeout"));
+                    reject(new Error("Request timeout - desktop app not responding. Make sure CipherMesh is running and vault is unlocked."));
                 }
-            }, 30000);
+            }, 5000);
         } catch (error) {
             pendingRequests.delete(id);
             reject(error);
