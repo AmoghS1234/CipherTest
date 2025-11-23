@@ -74,6 +74,9 @@ function sendToNative(message) {
 function handleNativeMessage(message) {
     const { requestId, type, success, data, error } = message;
     
+    // Log response type only, not sensitive data
+    console.log("Received from native:", { requestId, type, success, hasData: !!data, error });
+    
     if (pendingRequests.has(requestId)) {
         const { resolve, reject } = pendingRequests.get(requestId);
         pendingRequests.delete(requestId);
@@ -88,7 +91,8 @@ function handleNativeMessage(message) {
 
 // Handle messages from content scripts
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Message from content script:", message);
+    // Log message type only, not sensitive data
+    console.log("Message from content script:", { type: message.type, url: message.url || '' });
     
     switch (message.type) {
         case "GET_CREDENTIALS":
@@ -109,7 +113,8 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 url: message.url,
                 username: message.username,
                 password: message.password,
-                title: message.title
+                title: message.title,
+                group: message.group
             }).then(data => {
                 sendResponse({ success: true, data });
             }).catch(error => {
@@ -118,6 +123,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
             
         case "CHECK_CONNECTION":
+            // Check if already connected, don't reconnect unnecessarily
+            if (nativePort) {
+                sendResponse({ connected: true });
+                return false;
+            }
+            
+            // Try to connect
             sendToNative({
                 type: "PING"
             }).then(() => {
@@ -128,6 +140,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
             
         case "VERIFY_MASTER_PASSWORD":
+            // Don't log password
             sendToNative({
                 type: "VERIFY_MASTER_PASSWORD",
                 password: message.password

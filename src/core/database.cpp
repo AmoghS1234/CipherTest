@@ -357,10 +357,26 @@ std::vector<Location> Database::getLocationsForEntry(int entryId) {
 std::vector<VaultEntry> Database::findEntriesByLocation(const std::string& locationValue) {
     std::vector<VaultEntry> entries;
     sqlite3_stmt* stmt;
-    const char* sql = R"( SELECT DISTINCT e.id, e.title, e.username, e.notes FROM entries e JOIN locations l ON e.id = l.entry_id WHERE l.value = ?; )";
+    
+    // First try exact match
+    const char* sql = R"(
+        SELECT DISTINCT e.id, e.title, e.username, e.notes 
+        FROM entries e 
+        JOIN locations l ON e.id = l.entry_id 
+        WHERE l.value = ?
+        UNION
+        SELECT DISTINCT e.id, e.title, e.username, e.notes 
+        FROM entries e 
+        JOIN locations l ON e.id = l.entry_id 
+        WHERE ? LIKE '%' || l.value || '%' OR l.value LIKE '%' || ? || '%';
+    )";
+    
     int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
     check_sqlite(rc, m_db);
     sqlite3_bind_text(stmt, 1, locationValue.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, locationValue.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, locationValue.c_str(), -1, SQLITE_STATIC);
+    
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         int id = sqlite3_column_int(stmt, 0);
         std::string title = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
