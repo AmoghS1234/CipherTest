@@ -7,15 +7,26 @@
     const CIPHERMESH_MARKER = 'data-ciphermesh-processed';
     let isConnected = false;
     
-    // Check connection status
-    browser.runtime.sendMessage({ type: "CHECK_CONNECTION" }).then(response => {
-        isConnected = response.connected;
-        if (isConnected) {
-            scanForPasswordFields();
-        }
-    }).catch(() => {
-        isConnected = false;
-    });
+    // Initialize on load
+    function initialize() {
+        // Check connection status
+        browser.runtime.sendMessage({ type: "CHECK_CONNECTION" }).then(response => {
+            isConnected = response.connected;
+            if (isConnected) {
+                scanForPasswordFields();
+                setupMutationObserver();
+            }
+        }).catch(() => {
+            isConnected = false;
+        });
+    }
+    
+    // Run immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+        initialize();
+    }
     
     // Listen for connection status updates
     browser.runtime.onMessage.addListener((message) => {
@@ -27,16 +38,53 @@
         }
     });
     
+    // Setup MutationObserver to detect dynamically added password fields
+    function setupMutationObserver() {
+        const observer = new MutationObserver((mutations) => {
+            let shouldScan = false;
+            
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === 1) { // Element node
+                            if (node.tagName === 'INPUT' || node.querySelector) {
+                                shouldScan = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (shouldScan) break;
+            }
+            
+            if (shouldScan && isConnected) {
+                scanForPasswordFields();
+            }
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
     // Detect password fields on the page
     function scanForPasswordFields() {
         const passwordFields = document.querySelectorAll('input[type="password"]');
         
         passwordFields.forEach(field => {
-            if (!field.hasAttribute(CIPHERMESH_MARKER)) {
+            if (!field.hasAttribute(CIPHERMESH_MARKER) && isVisible(field)) {
                 field.setAttribute(CIPHERMESH_MARKER, 'true');
                 processPasswordField(field);
             }
         });
+    }
+    
+    // Check if element is visible
+    function isVisible(element) {
+        return element.offsetWidth > 0 && element.offsetHeight > 0 &&
+               window.getComputedStyle(element).visibility !== 'hidden' &&
+               window.getComputedStyle(element).display !== 'none';
     }
     
     // Process individual password field
@@ -86,6 +134,14 @@
             return;
         }
         
+        // Calculate button position to avoid conflicts
+        const fieldRect = passwordField.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(passwordField);
+        const paddingRight = parseInt(computedStyle.paddingRight) || 0;
+        
+        // Check if there are other buttons (like show/hide password)
+        const rightOffset = paddingRight > 30 ? paddingRight + 5 : 5;
+        
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'ciphermesh-autofill-btn';
@@ -93,28 +149,36 @@
         button.title = 'Auto-fill with CipherMesh';
         button.style.cssText = `
             position: absolute;
-            right: 5px;
+            right: ${rightOffset}px;
             top: 50%;
             transform: translateY(-50%);
-            background: #569cd6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 3px;
-            padding: 4px 8px;
+            border-radius: 6px;
+            padding: 6px 10px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             z-index: 10000;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+            line-height: 1;
         `;
         
         button.addEventListener('mouseenter', () => {
-            button.style.background = '#4a8bc2';
+            button.style.background = 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)';
+            button.style.transform = 'translateY(-50%) scale(1.05)';
+            button.style.boxShadow = '0 4px 8px rgba(102, 126, 234, 0.4)';
         });
         
         button.addEventListener('mouseleave', () => {
-            button.style.background = '#569cd6';
+            button.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            button.style.transform = 'translateY(-50%)';
+            button.style.boxShadow = '0 2px 4px rgba(102, 126, 234, 0.3)';
         });
         
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             await handleAutoFill(passwordField, usernameField);
         });
         
@@ -123,6 +187,11 @@
         const position = window.getComputedStyle(parent).position;
         if (position === 'static') {
             parent.style.position = 'relative';
+        }
+        
+        // Adjust password field padding to make room for button if needed
+        if (paddingRight < 40) {
+            passwordField.style.paddingRight = '45px';
         }
         
         parent.appendChild(button);
