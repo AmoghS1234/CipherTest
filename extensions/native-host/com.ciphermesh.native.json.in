@@ -1,7 +1,7 @@
 {
   "name": "com.ciphermesh.native",
   "description": "CipherMesh Native Messaging Host",
-  "path": "@CMAKE_INSTALL_PREFIX@/bin/ciphermesh-native-host",
+  "path": "@NATIVE_HOST_PATH@",
   "type": "stdio",
   "allowed_extensions": [
     "ciphermesh@ciphermesh.com"
