@@ -103,7 +103,7 @@ json IPCClient::sendMessage(const json& message) {
         
         // Receive response (read until newline)
         std::string response;
-        char buffer[4096];
+        char buffer[8192]; // Larger buffer for better performance
         
         while (true) {
             ssize_t received = recv(sockfd, buffer, sizeof(buffer) - 1, 0);

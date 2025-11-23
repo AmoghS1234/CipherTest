@@ -132,7 +132,10 @@ QByteArray IPCServer::handleMessage(const QByteArray& message) {
 json IPCServer::processRequest(const json& request) {
     std::string type = request.value("type", "");
     
-    qInfo() << "Processing request:" << QString::fromStdString(type);
+    // Only log non-PING requests to reduce overhead
+    if (type != "PING") {
+        qInfo() << "Processing request:" << QString::fromStdString(type);
+    }
     
     if (type == "PING") {
         return handlePing(request);

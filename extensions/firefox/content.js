@@ -53,6 +53,8 @@
     
     // Setup MutationObserver to detect dynamically added password fields
     function setupMutationObserver() {
+        let debounceTimer = null;
+        
         const observer = new MutationObserver((mutations) => {
             let shouldScan = false;
             
@@ -71,8 +73,14 @@
             }
             
             if (shouldScan) {
-                console.log('[CipherMesh] Mutation detected, rescanning...');
-                scanForPasswordFields();
+                // Debounce scanning to avoid excessive re-processing
+                if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                }
+                debounceTimer = setTimeout(() => {
+                    console.log('[CipherMesh] Mutation detected, rescanning...');
+                    scanForPasswordFields();
+                }, 250); // Wait 250ms after last mutation
             }
         });
         

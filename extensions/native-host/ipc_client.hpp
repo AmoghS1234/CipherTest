@@ -13,6 +13,7 @@ public:
     bool connect();
     void disconnect();
     json sendMessage(const json& message);
+    bool isConnected() const { return connected; }
     
 private:
     int sockfd;

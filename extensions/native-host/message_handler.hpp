@@ -2,6 +2,8 @@
 
 #include <nlohmann/json.hpp>
 #include <string>
+#include <memory>
+#include "ipc_client.hpp"
 
 using json = nlohmann::json;
 
@@ -11,7 +13,7 @@ public:
     ~MessageHandler();
     
     json handleMessage(const json& request);
-    
+
 private:
     json handlePing(const json& request);
     json handleGetCredentials(const json& request);
@@ -21,4 +23,8 @@ private:
     
     json createErrorResponse(int requestId, const std::string& error);
     json createSuccessResponse(int requestId, const json& data);
+    
+    // Persistent IPC connection for better performance
+    std::unique_ptr<IPCClient> m_ipcClient;
+    bool ensureConnected();
 };

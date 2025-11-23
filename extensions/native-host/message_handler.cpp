@@ -1,11 +1,25 @@
 #include "message_handler.hpp"
-#include "ipc_client.hpp"
 #include <iostream>
 
-MessageHandler::MessageHandler() {
+MessageHandler::MessageHandler() : m_ipcClient(std::make_unique<IPCClient>()) {
 }
 
 MessageHandler::~MessageHandler() {
+    if (m_ipcClient) {
+        m_ipcClient->disconnect();
+    }
+}
+
+bool MessageHandler::ensureConnected() {
+    if (m_ipcClient && m_ipcClient->isConnected()) {
+        return true;
+    }
+    
+    if (!m_ipcClient) {
+        m_ipcClient = std::make_unique<IPCClient>();
+    }
+    
+    return m_ipcClient->connect();
 }
 
 json MessageHandler::handleMessage(const json& request) {
@@ -36,13 +50,9 @@ json MessageHandler::handlePing(const json& request) {
     int requestId = request.value("requestId", -1);
     
     // Check if desktop app is running by trying to connect
-    IPCClient client;
-    if (client.connect()) {
-        json pingMsg = {
-            {"type", "PING"}
-        };
-        json response = client.sendMessage(pingMsg);
-        client.disconnect();
+    if (ensureConnected()) {
+        json pingMsg = {{"type", "PING"}};
+        json response = m_ipcClient->sendMessage(pingMsg);
         
         if (response.value("success", false)) {
             return createSuccessResponse(requestId, {{"status", "ok"}});
@@ -61,8 +71,7 @@ json MessageHandler::handleGetCredentials(const json& request) {
         return createErrorResponse(requestId, "URL is required");
     }
     
-    IPCClient client;
-    if (!client.connect()) {
+    if (!ensureConnected()) {
         return createErrorResponse(requestId, "Failed to connect to desktop app");
     }
     
@@ -72,12 +81,15 @@ json MessageHandler::handleGetCredentials(const json& request) {
         {"username", username}
     };
     
-    json response = client.sendMessage(ipcRequest);
-    client.disconnect();
+    json response = m_ipcClient->sendMessage(ipcRequest);
     
     if (response.value("success", false)) {
         return createSuccessResponse(requestId, response["data"]);
     } else {
+        // Connection might be broken, disconnect and let next call reconnect
+        if (response.value("error", "") == "Failed to receive response") {
+            m_ipcClient->disconnect();
+        }
         return createErrorResponse(requestId, response.value("error", "Unknown error"));
     }
 }
@@ -94,8 +106,7 @@ json MessageHandler::handleSaveCredentials(const json& request) {
         return createErrorResponse(requestId, "URL, username, and password are required");
     }
     
-    IPCClient client;
-    if (!client.connect()) {
+    if (!ensureConnected()) {
         return createErrorResponse(requestId, "Failed to connect to desktop app");
     }
     
@@ -108,12 +119,14 @@ json MessageHandler::handleSaveCredentials(const json& request) {
         {"group", group}
     };
     
-    json response = client.sendMessage(ipcRequest);
-    client.disconnect();
+    json response = m_ipcClient->sendMessage(ipcRequest);
     
     if (response.value("success", false)) {
         return createSuccessResponse(requestId, {{"saved", true}});
     } else {
+        if (response.value("error", "") == "Failed to receive response") {
+            m_ipcClient->disconnect();
+        }
         return createErrorResponse(requestId, response.value("error", "Unknown error"));
     }
 }
@@ -126,8 +139,7 @@ json MessageHandler::handleVerifyMasterPassword(const json& request) {
         return createErrorResponse(requestId, "Password is required");
     }
     
-    IPCClient client;
-    if (!client.connect()) {
+    if (!ensureConnected()) {
         return createErrorResponse(requestId, "Failed to connect to desktop app");
     }
     
@@ -136,12 +148,14 @@ json MessageHandler::handleVerifyMasterPassword(const json& request) {
         {"password", password}
     };
     
-    json response = client.sendMessage(ipcRequest);
-    client.disconnect();
+    json response = m_ipcClient->sendMessage(ipcRequest);
     
     if (response.value("success", false)) {
         return createSuccessResponse(requestId, {{"verified", response.value("verified", false)}});
     } else {
+        if (response.value("error", "") == "Failed to receive response") {
+            m_ipcClient->disconnect();
+        }
         return createErrorResponse(requestId, response.value("error", "Unknown error"));
     }
 }
@@ -149,21 +163,20 @@ json MessageHandler::handleVerifyMasterPassword(const json& request) {
 json MessageHandler::handleListGroups(const json& request) {
     int requestId = request.value("requestId", -1);
     
-    IPCClient client;
-    if (!client.connect()) {
+    if (!ensureConnected()) {
         return createErrorResponse(requestId, "Failed to connect to desktop app");
     }
     
-    json ipcRequest = {
-        {"type", "LIST_GROUPS"}
-    };
+    json ipcRequest = {{"type", "LIST_GROUPS"}};
     
-    json response = client.sendMessage(ipcRequest);
-    client.disconnect();
+    json response = m_ipcClient->sendMessage(ipcRequest);
     
     if (response.value("success", false)) {
         return createSuccessResponse(requestId, {{"groups", response.value("groups", json::array())}});
     } else {
+        if (response.value("error", "") == "Failed to receive response") {
+            m_ipcClient->disconnect();
+        }
         return createErrorResponse(requestId, response.value("error", "Unknown error"));
     }
 }
