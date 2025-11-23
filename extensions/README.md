@@ -10,80 +10,66 @@ Browser extensions for Firefox and Chrome that enable auto-fill and password cap
 - **Secure**: Requires master password verification before any operation
 - **Group Selection**: Choose which group to save passwords to
 
-## Installation
+## Installation & Setup
 
-### Prerequisites
+### Quick Start (Automated)
 
-1. CipherMesh desktop application must be installed and running
-2. Native messaging host must be installed (see below)
+The build system now handles everything automatically:
 
-### Firefox Installation
+```bash
+# Install dependencies
+sudo apt-get install -y libsodium-dev qt6-base-dev qt6-svg-dev qt6-websockets-dev
 
-1. Open Firefox and navigate to `about:debugging`
+# Build everything (manifests are auto-installed!)
+mkdir build && cd build
+cmake ..
+cmake --build . -j$(nproc)
+```
+
+**That's it!** The build process automatically:
+- ✅ Compiles all components
+- ✅ Installs native messaging manifests to browser directories
+- ✅ Configures manifests to point to build directory executables
+- ✅ Ready to use immediately - no manual steps needed
+
+### What Gets Installed Automatically
+
+During build, manifests are copied to:
+- `~/.mozilla/native-messaging-hosts/com.ciphermesh.native.json` (Firefox)
+- `~/.config/google-chrome/NativeMessagingHosts/com.ciphermesh.native.json` (Chrome)
+- `~/.config/chromium/NativeMessagingHosts/com.ciphermesh.native.json` (Chromium)
+
+The development manifests point to: `build/extensions/native-host/ciphermesh-native-host`
+
+### Loading the Extensions
+
+**Firefox:**
+1. Open `about:debugging`
 2. Click "This Firefox" → "Load Temporary Add-on"
-3. Select the `manifest.json` file from the `firefox` directory
-4. The extension will be loaded (note: temporary add-ons are removed when Firefox closes)
+3. Select `extensions/firefox/manifest.json`
 
-For permanent installation, the extension needs to be signed by Mozilla or installed as a Developer Edition.
-
-### Chrome Installation
-
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in top right)
+**Chrome:**
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
 3. Click "Load unpacked"
-4. Select the `chrome` directory
-5. The extension will be loaded
+4. Select the `extensions/chrome/` directory
+5. Copy the extension ID and update `allowed_origins` in the manifest if needed
 
-### Native Messaging Host Setup
+### Using the Extensions
 
-The native messaging host is required for the extension to communicate with the CipherMesh desktop app.
+1. Open CipherMesh desktop app and unlock vault
+2. Navigate to login pages in your browser
+3. Click 🔐 button to auto-fill or save passwords
 
-#### Linux
+### Optional: System-Wide Installation
 
-1. Build the native host:
-   ```bash
-   cd extensions/native-host
-   mkdir build && cd build
-   cmake ..
-   make
-   ```
+For production use (not required for development):
+```bash
+cd build
+sudo make install
+```
 
-2. Install the native messaging manifests:
-
-   **Firefox:**
-   ```bash
-   mkdir -p ~/.mozilla/native-messaging-hosts/
-   cp com.ciphermesh.native.json ~/.mozilla/native-messaging-hosts/
-   ```
-
-   **Chrome/Chromium:**
-   ```bash
-   mkdir -p ~/.config/google-chrome/NativeMessagingHosts/
-   cp com.ciphermesh.native.json ~/.config/google-chrome/NativeMessagingHosts/
-   # For Chromium:
-   mkdir -p ~/.config/chromium/NativeMessagingHosts/
-   cp com.ciphermesh.native.json ~/.config/chromium/NativeMessagingHosts/
-   ```
-
-3. Update the manifest file to point to the correct executable path
-
-## Usage
-
-### Auto-Fill Passwords
-
-1. Navigate to a login page
-2. Click the 🔐 button next to the password field
-3. Enter your CipherMesh master password
-4. If multiple accounts exist, select the one you want to use
-5. Credentials will be auto-filled
-
-### Save New Passwords
-
-1. Log in to a website
-2. After submitting the form, you'll be prompted to save the password
-3. Enter your master password
-4. Select the group to save to
-5. Password is saved to your CipherMesh vault
+This installs to `/usr/local/bin/` and creates system-level manifests.
 
 ## Architecture
 

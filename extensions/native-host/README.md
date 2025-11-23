@@ -11,59 +11,80 @@ It receives JSON messages from the browser extension over stdin/stdout (native m
 
 ## Building
 
-### Prerequisites
+The native messaging host is now integrated into the main CipherMesh build system.
 
-- CMake 3.16+
-- C++17 compiler
-- nlohmann/json library
+### Automated Build (Recommended)
 
-### Ubuntu/Debian
+Build as part of the main project:
 
 ```bash
-sudo apt-get install cmake g++ nlohmann-json3-dev
+# From CipherMesh root directory
+mkdir build && cd build
+cmake ..
+cmake --build . -j$(nproc)
 ```
 
-### Build
+**Manifests are automatically installed!** The build system:
+- Compiles `ciphermesh-native-host` executable
+- Generates manifests pointing to the build directory
+- Copies manifests to:
+  - `~/.mozilla/native-messaging-hosts/` (Firefox)
+  - `~/.config/google-chrome/NativeMessagingHosts/` (Chrome)
+  - `~/.config/chromium/NativeMessagingHosts/` (Chromium)
+
+### Manual Build (Not Recommended)
+
+If building standalone (outside main project):
 
 ```bash
+cd extensions/native-host
 mkdir build && cd build
 cmake ..
 make
+```
+
+Then manually copy manifests and update paths.
+
+## Installation
+
+### Development Use (Automatic)
+
+No manual installation needed! The build process handles everything.
+
+Just load the browser extension and start using it.
+
+### System-Wide Installation (Optional)
+
+For production deployment:
+
+```bash
+cd build  # From CipherMesh root build directory
 sudo make install
 ```
 
 This installs:
 - `/usr/local/bin/ciphermesh-native-host` - The executable
-- `/usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json` - The manifest
+- `/usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json` - System manifest
 
-## Installation
+Then copy system manifest to browser directories:
 
-After building, you need to install the native messaging manifests for your browsers.
-
-### Firefox
-
+**Firefox:**
 ```bash
 mkdir -p ~/.mozilla/native-messaging-hosts/
 cp /usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json ~/.mozilla/native-messaging-hosts/
 ```
 
-### Chrome/Chromium
-
+**Chrome/Chromium:**
 ```bash
 mkdir -p ~/.config/google-chrome/NativeMessagingHosts/
 cp /usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json ~/.config/google-chrome/NativeMessagingHosts/
-```
 
-For Chromium:
-```bash
+# For Chromium:
 mkdir -p ~/.config/chromium/NativeMessagingHosts/
 cp /usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json ~/.config/chromium/NativeMessagingHosts/
 ```
 
-**Note:** For Chrome, you'll need to update the manifest file with your extension ID:
-1. Load the extension in Chrome
-2. Copy the extension ID from `chrome://extensions/`
-3. Edit the manifest file and replace `EXTENSION_ID_HERE` with your actual ID
+**Note:** For Chrome, update the manifest with your extension ID from `chrome://extensions/`
 
 ## How It Works
 

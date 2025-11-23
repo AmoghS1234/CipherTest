@@ -203,68 +203,61 @@ Get available vault groups.
 
 ## Installation & Setup
 
-### 1. Build Desktop App with IPC Support
+### Quick Start (Automated Build & Setup)
+
+The entire setup is now automated with a single build command:
 
 ```bash
+# Install dependencies
+sudo apt-get install -y libsodium-dev qt6-base-dev qt6-svg-dev qt6-websockets-dev
+
+# Build everything - manifests are automatically installed!
 cd /path/to/CipherTest
 mkdir build && cd build
 cmake ..
-make
+cmake --build . -j$(nproc)
 ```
 
-The IPC server starts automatically when the desktop app launches.
+**That's it!** This single command:
+- ✅ Compiles CipherMesh-Desktop with IPC server
+- ✅ Builds native messaging host
+- ✅ Generates development manifests
+- ✅ Automatically copies manifests to all browser directories
+- ✅ Configures paths to point to build directory executables
 
-### 2. Build Native Messaging Host
+### What Gets Installed Automatically
 
-```bash
-cd extensions/native-host
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
+Manifests are copied to:
+- `~/.mozilla/native-messaging-hosts/com.ciphermesh.native.json` (Firefox)
+- `~/.config/google-chrome/NativeMessagingHosts/com.ciphermesh.native.json` (Chrome)
+- `~/.config/chromium/NativeMessagingHosts/com.ciphermesh.native.json` (Chromium)
 
-This installs:
-- `/usr/local/bin/ciphermesh-native-host`
-- `/usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json`
+Development manifests point to: `build/extensions/native-host/ciphermesh-native-host`
 
-### 3. Install Native Messaging Manifests
-
-**Firefox**:
-```bash
-mkdir -p ~/.mozilla/native-messaging-hosts/
-cp /usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json \
-   ~/.mozilla/native-messaging-hosts/
-```
-
-**Chrome**:
-```bash
-mkdir -p ~/.config/google-chrome/NativeMessagingHosts/
-cp /usr/local/share/ciphermesh/native-messaging/com.ciphermesh.native.json \
-   ~/.config/google-chrome/NativeMessagingHosts/
-```
-
-**For Chrome**: Edit the manifest and replace `EXTENSION_ID_HERE` with your actual extension ID (found in `chrome://extensions/`).
-
-### 4. Load Browser Extensions
+### Load Browser Extensions
 
 **Firefox**:
 1. Open `about:debugging`
-2. Click "This Firefox"
-3. Click "Load Temporary Add-on"
-4. Select `extensions/firefox/manifest.json`
+2. Click "This Firefox" → "Load Temporary Add-on"
+3. Select `extensions/firefox/manifest.json`
 
 **Chrome**:
 1. Open `chrome://extensions/`
 2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `extensions/chrome/` directory
+5. (Optional) Copy extension ID and update `allowed_origins` in manifest
 
-### 5. Add Extension Icons (Optional)
+### Optional: System-Wide Installation
 
-Place icon files in `extensions/firefox/icons/` and `extensions/chrome/icons/`:
-- `icon-48.png` (48x48 pixels)
-- `icon-96.png` (96x96 pixels)
+For production deployment (not needed for development):
+
+```bash
+cd build
+sudo make install
+```
+
+This installs to `/usr/local/bin/` and creates system manifests. You'll need to manually copy the system manifest to browser directories after this.
 
 ## Usage
 

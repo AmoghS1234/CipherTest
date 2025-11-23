@@ -149,9 +149,30 @@ Web Page → Content Script → Background Script → Native Host → Unix Socke
 
 ## Testing Recommendations
 
-1. **Build and install** native host
-2. **Load extensions** in Firefox/Chrome  
-3. **Test workflows**:
+### Build and Setup
+
+```bash
+# Install dependencies
+sudo apt-get install -y libsodium-dev qt6-base-dev qt6-svg-dev qt6-websockets-dev
+
+# Build everything - manifests are auto-installed!
+mkdir build && cd build
+cmake ..
+cmake --build . -j$(nproc)
+```
+
+**No manual steps needed!** The build automatically:
+1. Compiles all components
+2. Generates development manifests
+3. Copies manifests to browser directories
+4. Configures paths to build directory executables
+
+### Load Extensions
+
+**Firefox**: `about:debugging` → Load Temporary Add-on → `extensions/firefox/manifest.json`
+**Chrome**: `chrome://extensions/` → Load unpacked → `extensions/chrome/`
+
+### Test Workflows
    - Unlock vault in desktop app
    - Navigate to GitHub login
    - Test auto-fill
