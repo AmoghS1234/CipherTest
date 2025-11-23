@@ -27,6 +27,7 @@ target_include_directories(CipherMesh-Desktop
     ${CMAKE_SOURCE_DIR}/src/p2p           
     ${CMAKE_SOURCE_DIR}/src/p2p_webrtc
     ${CMAKE_SOURCE_DIR}/src/utils
+    ${CMAKE_SOURCE_DIR}/src/ipc
 )
 
 target_link_libraries(CipherMesh-Desktop
@@ -37,5 +38,6 @@ target_link_libraries(CipherMesh-Desktop
     ciphermesh-core
     ciphermesh-utils
     p2p
-    webrtc-client 
+    webrtc-client
+    ipc
 )
