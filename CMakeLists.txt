@@ -26,6 +26,7 @@ add_subdirectory(src)
 
 # Build native messaging host for browser extensions
 add_subdirectory(extensions/native-host)
+add_subdirectory(extensions/vault-service)
 
 option(BUILD_TESTS "Build the CipherMesh test suite" OFF)
 

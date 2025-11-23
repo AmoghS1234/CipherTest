@@ -1,0 +1,12 @@
+{
+  "name": "com.ciphermesh.vault",
+  "description": "CipherMesh Vault Service - Direct vault access for browser extension",
+  "path": "@VAULT_SERVICE_PATH@",
+  "type": "stdio",
+  "allowed_extensions": [
+    "ciphermesh@password.manager"
+  ],
+  "allowed_origins": [
+    "chrome-extension://ciphermesh-extension-id/"
+  ]
+}
