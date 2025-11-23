@@ -1,22 +1,24 @@
 // Background script for CipherMesh Firefox Extension
-// Handles native messaging with the desktop app
+// Handles native messaging with the standalone vault service
 
+// Native messaging connection to vault service
 let nativePort = null;
+const NATIVE_APP_NAME = "com.ciphermesh.vault";
 let pendingRequests = new Map();
 let requestId = 0;
 
-// Connect to native messaging host
+// Connect to vault service
 function connectNative() {
     try {
-        nativePort = browser.runtime.connectNative("com.ciphermesh.native");
-        
+        nativePort = browser.runtime.connectNative(NATIVE_APP_NAME);
+        console.log("[CipherMesh] Connected to vault service");
         nativePort.onMessage.addListener((message) => {
             console.log("Received from native:", message);
             handleNativeMessage(message);
         });
         
         nativePort.onDisconnect.addListener(() => {
-            console.log("Disconnected from native app");
+            console.log("[CipherMesh] Disconnected from vault service");
             nativePort = null;
             
             // Notify content scripts that connection is lost
@@ -30,20 +32,20 @@ function connectNative() {
             });
         });
         
-        console.log("Connected to native messaging host");
+        console.log("[CipherMesh] Connected to vault service");
         return true;
     } catch (error) {
-        console.error("Failed to connect to native app:", error);
+        console.error("[CipherMesh] Failed to connect to vault service:", error);
         return false;
     }
 }
 
-// Send message to native host
+// Send message to vault service
 function sendToNative(message) {
     return new Promise((resolve, reject) => {
         if (!nativePort) {
             if (!connectNative()) {
-                reject(new Error("Failed to connect to CipherMesh desktop app"));
+                reject(new Error("Failed to connect to vault service. Make sure it's installed."));
                 return;
             }
         }
