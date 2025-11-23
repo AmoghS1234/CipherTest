@@ -1,0 +1,12 @@
+{
+  "name": "com.ciphermesh.native",
+  "description": "CipherMesh Native Messaging Host",
+  "path": "@CMAKE_INSTALL_PREFIX@/bin/ciphermesh-native-host",
+  "type": "stdio",
+  "allowed_extensions": [
+    "ciphermesh@ciphermesh.com"
+  ],
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_HERE/"
+  ]
+}
