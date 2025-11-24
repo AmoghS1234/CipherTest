@@ -7,6 +7,11 @@
     const CIPHERMESH_MARKER = 'data-ciphermesh-processed';
     let isConnected = false;
     
+    // Button positioning constants
+    const MIN_BUTTON_OFFSET = 40;      // Minimum distance from right edge to avoid browser buttons
+    const MIN_PADDING_FOR_BUTTONS = 75; // Minimum padding needed for both buttons
+    const BUTTON_PADDING = 80;          // Total padding to accommodate both buttons
+    
     // Initialize on load
     function initialize() {
         console.log('[CipherMesh] Initializing content script...');
@@ -169,9 +174,9 @@
         const computedStyle = window.getComputedStyle(passwordField);
         const paddingRight = parseInt(computedStyle.paddingRight) || 0;
         
-        // Position button at least 40px from the right edge to avoid overlap
+        // Position button at least MIN_BUTTON_OFFSET from the right edge to avoid overlap
         // If there's already significant padding, add to it
-        const rightOffset = Math.max(paddingRight + 5, 40);
+        const rightOffset = Math.max(paddingRight + 5, MIN_BUTTON_OFFSET);
         
         const button = document.createElement('button');
         button.type = 'button';

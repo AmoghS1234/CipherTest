@@ -206,8 +206,16 @@ json VaultService::handleGetCredentials(const json& request) {
         // Multiple entries - return list with decrypted passwords for user to choose
         json credentials = json::array();
         for (const auto& entry : entries) {
-            // Decrypt password for each entry
-            std::string decryptedPassword = m_vault->getDecryptedPassword(entry.id);
+            // Decrypt password for each entry with error handling
+            std::string decryptedPassword;
+            try {
+                decryptedPassword = m_vault->getDecryptedPassword(entry.id);
+            } catch (const std::exception& e) {
+                std::cerr << "[Vault Service] Failed to decrypt password for entry " 
+                          << entry.id << ": " << e.what() << std::endl;
+                // Skip entries that can't be decrypted
+                continue;
+            }
             
             json cred;
             cred["id"] = entry.id;
