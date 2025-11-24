@@ -62,7 +62,11 @@ json VaultService::handleRequest(const json& request) {
     json response;
     
     try {
-        std::string action = request["action"];
+        // Support both "action" (original) and "type" (native-host protocol) fields
+        std::string action = request.value("action", "");
+        if (action.empty()) {
+            action = request.value("type", "");
+        }
         
         if (action == "VERIFY_MASTER_PASSWORD") {
             return handleVerifyMasterPassword(request);
@@ -94,7 +98,18 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
     json response;
     
     try {
-        std::string masterPassword = request["masterPassword"];
+        // Support both "masterPassword" (original) and "password" (native-host protocol)
+        std::string masterPassword = request.value("masterPassword", "");
+        if (masterPassword.empty()) {
+            masterPassword = request.value("password", "");
+        }
+        
+        if (masterPassword.empty()) {
+            response["status"] = "error";
+            response["error"] = "Password is required";
+            return response;
+        }
+        
         std::string vaultPath = request.value("vaultPath", getDefaultVaultPath());
         
         if (vaultPath.empty()) {
@@ -126,6 +141,7 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
         
         response["status"] = "success";
         response["message"] = "Master password verified";
+        response["verified"] = true;  // Add for native-host compatibility
         return response;
         
     } catch (const std::exception& e) {

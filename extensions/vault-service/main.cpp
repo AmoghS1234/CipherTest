@@ -48,14 +48,59 @@ int main() {
         
         try {
             json request = json::parse(input);
-            std::cerr << "[Vault Service] Request: " << request["action"] << std::endl;
             
-            json response = service.handleRequest(request);
+            // Extract requestId if present (native-host protocol compatibility)
+            int requestId = request.value("requestId", -1);
+            
+            std::string action = request.value("action", request.value("type", ""));
+            std::cerr << "[Vault Service] Request: " << action;
+            if (requestId != -1) {
+                std::cerr << " (requestId: " << requestId << ")";
+            }
+            std::cerr << std::endl;
+            
+            json serviceResponse = service.handleRequest(request);
+            
+            // Convert to native-host format if requestId is present
+            json response;
+            if (requestId != -1) {
+                // Native-host protocol format
+                response["requestId"] = requestId;
+                if (serviceResponse["status"] == "success") {
+                    response["success"] = true;
+                    // Extract data fields
+                    json data;
+                    if (serviceResponse.contains("verified")) {
+                        data["verified"] = serviceResponse["verified"];
+                    }
+                    if (serviceResponse.contains("entries")) {
+                        data["entries"] = serviceResponse["entries"];
+                    }
+                    if (serviceResponse.contains("groups")) {
+                        data["groups"] = serviceResponse["groups"];
+                    }
+                    if (serviceResponse.contains("username")) {
+                        data["username"] = serviceResponse["username"];
+                        data["password"] = serviceResponse["password"];
+                        data["title"] = serviceResponse.value("title", "");
+                    }
+                    if (serviceResponse.contains("saved")) {
+                        data["saved"] = serviceResponse["saved"];
+                    }
+                    response["data"] = data;
+                } else {
+                    response["success"] = false;
+                    response["error"] = serviceResponse.value("error", "Unknown error");
+                }
+            } else {
+                // Original vault-service format
+                response = serviceResponse;
+            }
             
             std::string responseStr = response.dump();
             writeNativeMessage(responseStr);
             
-            std::cerr << "[Vault Service] Response sent: " << response["status"] << std::endl;
+            std::cerr << "[Vault Service] Response sent: " << (response.contains("success") ? (response["success"].get<bool>() ? "success" : "error") : serviceResponse["status"].get<std::string>()) << std::endl;
             
         } catch (const json::exception& e) {
             std::cerr << "[Vault Service] JSON error: " << e.what() << std::endl;
