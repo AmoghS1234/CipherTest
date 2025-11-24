@@ -163,13 +163,15 @@
         
         console.log('[CipherMesh] Adding autofill button to password field');
         
-        // Calculate button position to avoid conflicts
+        // Calculate button position to avoid conflicts with browser show/hide password button
+        // Most browsers add a show/hide button at around 5-10px from the right
+        // We need to position our button further left to avoid overlap
         const computedStyle = window.getComputedStyle(passwordField);
         const paddingRight = parseInt(computedStyle.paddingRight) || 0;
         
-        // Check if there are other buttons (like show/hide password)
-        // If padding is large, it likely means there's already a button
-        const rightOffset = paddingRight > 30 ? paddingRight + 5 : 5;
+        // Position button at least 40px from the right edge to avoid overlap
+        // If there's already significant padding, add to it
+        const rightOffset = Math.max(paddingRight + 5, 40);
         
         const button = document.createElement('button');
         button.type = 'button';
@@ -224,9 +226,10 @@
             parent.style.position = 'relative';
         }
         
-        // Adjust password field padding to make room for button if needed
-        if (paddingRight < 40) {
-            passwordField.style.paddingRight = '45px';
+        // Adjust password field padding to make room for both our button and browser's show/hide button
+        // We need at least 75px to accommodate both buttons without overlap
+        if (paddingRight < 75) {
+            passwordField.style.paddingRight = '80px';
         }
         
         parent.appendChild(button);
@@ -589,6 +592,14 @@
             console.log('[CipherMesh] Credentials response:', response);
             
             if (response.success && response.data) {
+                // Handle single credential returned directly
+                if (response.data.username && response.data.password) {
+                    console.log('[CipherMesh] Filling single credential');
+                    fillCredentials(response.data, usernameField, passwordField);
+                    await showAlertDialog('Credentials filled successfully!', 'Success');
+                    return;
+                }
+                
                 // Check for both 'entries' and 'credentials' fields (vault-service uses 'credentials' for multiple)
                 const entries = response.data.entries || response.data.credentials || [];
                 console.log('[CipherMesh] Found', entries.length, 'entries');
@@ -694,10 +705,15 @@
             url: url,
             username: username
         }).then(response => {
-            if (response.success && response.data.entries && response.data.entries.length === 0) {
-                // No existing entry - ask to save
-                setTimeout(async () => {
-                    const shouldSave = await showConfirmDialog(
+            // Check if there's a direct credential or multiple entries
+            if (response.success && response.data) {
+                const hasSingleEntry = response.data.username && response.data.password;
+                const entries = response.data.entries || response.data.credentials || [];
+                
+                if (!hasSingleEntry && entries.length === 0) {
+                    // No existing entry - ask to save
+                    setTimeout(async () => {
+                        const shouldSave = await showConfirmDialog(
                         `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
                         'Save Password'
                     );

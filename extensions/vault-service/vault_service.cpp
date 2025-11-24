@@ -203,12 +203,16 @@ json VaultService::handleGetCredentials(const json& request) {
             return response;
         }
         
-        // Multiple entries - return list for user to choose
+        // Multiple entries - return list with decrypted passwords for user to choose
         json credentials = json::array();
         for (const auto& entry : entries) {
+            // Decrypt password for each entry
+            std::string decryptedPassword = m_vault->getDecryptedPassword(entry.id);
+            
             json cred;
             cred["id"] = entry.id;
             cred["username"] = entry.username;
+            cred["password"] = decryptedPassword;  // Include decrypted password
             cred["title"] = entry.title;
             credentials.push_back(cred);
         }
