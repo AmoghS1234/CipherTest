@@ -19,7 +19,7 @@ VaultService::~VaultService() {
 
 std::string VaultService::getDefaultVaultPath() {
     // Use the same path as desktop app: ciphermesh.db in current directory
-    return "ciphermesh.db";
+    return "/home/amogh/Projects/CipherTest/build/ciphermesh.db";
 }
 
 json VaultService::handleRequest(const json& request) {

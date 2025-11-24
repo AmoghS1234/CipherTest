@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
+find_package(Qt6 REQUIRED COMPONENTS Core Network)
 # Native messaging host executable
 add_executable(ciphermesh-native-host
     main.cpp
@@ -12,6 +12,8 @@ add_executable(ciphermesh-native-host
 
 target_link_libraries(ciphermesh-native-host
     PRIVATE
+    Qt6::Core
+    Qt6::Network
     nlohmann_json::nlohmann_json
 )
 
