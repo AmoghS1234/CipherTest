@@ -3,7 +3,7 @@
 
 // Native messaging connection to vault service
 let nativePort = null;
-const NATIVE_APP_NAME = "com.ciphermesh.vault";
+const NATIVE_APP_NAME = "com.ciphermesh.native";
 let pendingRequests = new Map();
 let requestId = 0;
 
