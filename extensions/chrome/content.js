@@ -21,14 +21,14 @@
             console.log('[CipherMesh] Connection check result:', response);
             isConnected = response.connected;
             if (isConnected) {
-                console.log('[CipherMesh] Connected to desktop app');
+                console.log('[CipherMesh] Connected to vault service');
             } else {
-                console.log('[CipherMesh] Not connected to desktop app - buttons will still appear but may not function');
+                console.log('[CipherMesh] Not connected to vault service - buttons will still appear but may not function');
             }
         }).catch((error) => {
             console.error('[CipherMesh] Connection check failed:', error);
             isConnected = false;
-            console.log('[CipherMesh] Buttons will appear but desktop app connection required for functionality');
+            console.log('[CipherMesh] Buttons will appear but vault service connection required for functionality');
         });
     }
     
@@ -560,7 +560,7 @@
             
             if (!verifyResponse || !verifyResponse.success) {
                 console.error('[CipherMesh] Verification failed:', verifyResponse);
-                await showAlertDialog('Failed to verify password. Make sure the desktop app is running and vault is unlocked.', 'Connection Error', true);
+                await showAlertDialog('Failed to verify password. The password may be incorrect.', 'Verification Failed', true);
                 return;
             }
             

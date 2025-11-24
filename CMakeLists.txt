@@ -24,8 +24,7 @@ endif()
 
 add_subdirectory(src)
 
-# Build native messaging host for browser extensions
-add_subdirectory(extensions/native-host)
+# Build vault-service for browser extensions (standalone, no desktop app required)
 add_subdirectory(extensions/vault-service)
 
 option(BUILD_TESTS "Build the CipherMesh test suite" OFF)

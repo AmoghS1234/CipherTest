@@ -62,7 +62,7 @@ function sendToNative(message) {
             setTimeout(() => {
                 if (pendingRequests.has(id)) {
                     pendingRequests.delete(id);
-                    reject(new Error("Request timeout - desktop app not responding. Make sure CipherMesh is running and vault is unlocked."));
+                    reject(new Error("Request timeout - vault service not responding. Make sure the vault database exists."));
                 }
             }, 5000);
         } catch (error) {

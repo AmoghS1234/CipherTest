@@ -21,5 +21,5 @@ function updateStatus(connected) {
 
 // Open app button (placeholder - native messaging doesn't support this directly)
 document.getElementById('openApp').addEventListener('click', () => {
-    alert('Please open CipherMesh desktop application manually.');
+    alert('Please ensure the vault service is properly configured.');
 });
