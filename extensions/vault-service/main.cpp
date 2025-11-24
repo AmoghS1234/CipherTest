@@ -1,6 +1,7 @@
 #include "vault_service.hpp"
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -11,13 +12,31 @@ std::string readNativeMessage() {
     uint32_t length = 0;
     std::cin.read(reinterpret_cast<char*>(&length), 4);
     
-    if (std::cin.eof() || length == 0 || length > 1024 * 1024) {
+    if (std::cin.eof()) {
+        std::cerr << "[Vault Service] EOF on length read" << std::endl;
         return "";
     }
+    
+    if (std::cin.fail()) {
+        std::cerr << "[Vault Service] Failed to read length" << std::endl;
+        return "";
+    }
+    
+    if (length == 0 || length > 1024 * 1024) {
+        std::cerr << "[Vault Service] Invalid message length: " << length << std::endl;
+        return "";
+    }
+    
+    std::cerr << "[Vault Service] Reading message of length: " << length << std::endl;
     
     // Read message
     std::string message(length, '\0');
     std::cin.read(&message[0], length);
+    
+    if (std::cin.fail()) {
+        std::cerr << "[Vault Service] Failed to read message body" << std::endl;
+        return "";
+    }
     
     return message;
 }
@@ -36,15 +55,19 @@ int main() {
     
     VaultService service;
     
-    std::cerr << "[Vault Service] Started" << std::endl;
+    std::cerr << "[Vault Service] Started (PID: " << getpid() << ")" << std::endl;
+    std::cerr << "[Vault Service] Waiting for messages..." << std::endl;
     
     while (true) {
+        std::cerr << "[Vault Service] Ready to read next message" << std::endl;
         std::string input = readNativeMessage();
         
         if (input.empty()) {
             std::cerr << "[Vault Service] Empty message or EOF, exiting" << std::endl;
             break;
         }
+        
+        std::cerr << "[Vault Service] Received message: " << input.substr(0, 100) << (input.length() > 100 ? "..." : "") << std::endl;
         
         try {
             json request = json::parse(input);
