@@ -3,7 +3,6 @@
 #include "vault.hpp"
 #include "themes.hpp" // Modular header
 #include "crypto.hpp"
-#include "ipc_server.hpp" // IPC Server for browser extensions
 #include <QApplication>
 #include <QStyleFactory>
 #include <cstdio>
@@ -19,14 +18,6 @@ int main(int argc, char *argv[])
     app.setStyleSheet(CipherMesh::Themes::getDefault().styleSheet);
     
     app.setQuitOnLastWindowClosed(false);
-    
-    // Start IPC server for browser extensions
-    CipherMesh::IPC::IPCServer ipcServer(&g_vault);
-    if (ipcServer.start()) {
-        qInfo() << "IPC server started for browser extensions";
-    } else {
-        qWarning() << "Failed to start IPC server - browser extensions will not work";
-    }
 
     // Initial window with temporary user ID
     MainWindow* w = nullptr;
@@ -63,12 +54,10 @@ int main(int argc, char *argv[])
             if (g_vault.isLocked()) continue;
             else {
                 delete w;
-                ipcServer.stop(); // Clean up IPC server
                 return 0;
             }
         } else {
             if (w) delete w;
-            ipcServer.stop(); // Clean up IPC server
             return 0;
         }
     }

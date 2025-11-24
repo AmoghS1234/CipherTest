@@ -27,7 +27,7 @@ std::string VaultService::getDefaultVaultPath() {
     }
     
     // Check for vault in ~/.ciphermesh/ directory (standard location)
-    std::string standardPath = std::string(home) + "/.ciphermesh/vault.db";
+    std::string standardPath = std::string(home) + "/Projects/CipherTest/build/ciphermesh.db";
     std::ifstream standardFile(standardPath);
     if (standardFile.good()) {
         return standardPath;
