@@ -99,8 +99,8 @@ bool Vault::verifyMasterPassword(const std::string& password) {
     // NOTE: Removed checkLocked() - this function should work even when locked
     // to allow browser extensions to verify the master password
     
-    // Check if database is available
-    if (!m_db || m_dbPath.empty()) {
+    // Check if database is available and open
+    if (!m_db || !m_db->isOpen() || m_dbPath.empty()) {
         return false;
     }
     

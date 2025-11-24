@@ -7,6 +7,6 @@
     "ciphermesh@ciphermesh.com"
   ],
   "allowed_origins": [
-    "chrome-extension://EXTENSION_ID_HERE/"
+    "chrome-extension://CHROME_EXTENSION_ID_REPLACE_ME/"
   ]
 }
