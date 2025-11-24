@@ -89,7 +89,9 @@ int main() {
             if (requestId != -1) {
                 // Native-host protocol format
                 response["requestId"] = requestId;
-                if (serviceResponse["status"] == "success") {
+                std::string status = serviceResponse.value("status", "error");
+                
+                if (status == "success" || status == "multiple") {
                     response["success"] = true;
                     // Extract data fields
                     json data;
@@ -101,6 +103,11 @@ int main() {
                     }
                     if (serviceResponse.contains("groups")) {
                         data["groups"] = serviceResponse["groups"];
+                    }
+                    if (serviceResponse.contains("credentials")) {
+                        // Multiple credentials case
+                        data["credentials"] = serviceResponse["credentials"];
+                        data["multiple"] = true;
                     }
                     if (serviceResponse.contains("username")) {
                         data["username"] = serviceResponse["username"];
