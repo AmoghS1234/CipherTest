@@ -25,19 +25,34 @@ install(TARGETS ciphermesh-vault-service
     RUNTIME DESTINATION bin
 )
 
-# Generate and install native messaging manifest for vault service
-set(VAULT_SERVICE_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/bin/ciphermesh-vault-service")
-set(VAULT_SERVICE_DEV_PATH "${CMAKE_CURRENT_BINARY_DIR}/ciphermesh-vault-service")
+# Generate wrapper script that runs vault service from build directory
+set(VAULT_SERVICE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ciphermesh-vault-service")
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/ciphermesh-vault-service-wrapper.sh.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ciphermesh-vault-service-wrapper.sh
+    @ONLY
+)
 
-# Template for installed version
+# Make wrapper executable
+add_custom_command(TARGET ciphermesh-vault-service POST_BUILD
+    COMMAND chmod +x "${CMAKE_CURRENT_BINARY_DIR}/ciphermesh-vault-service-wrapper.sh"
+    COMMENT "Making vault service wrapper executable"
+)
+
+# Generate native messaging manifest pointing to wrapper
+set(VAULT_SERVICE_WRAPPER_PATH "${CMAKE_CURRENT_BINARY_DIR}/ciphermesh-vault-service-wrapper.sh")
+set(VAULT_SERVICE_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/bin/ciphermesh-vault-service")
+
+# Template for installed version (points to installed executable)
+set(VAULT_SERVICE_PATH ${VAULT_SERVICE_INSTALL_PATH})
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/com.ciphermesh.vault.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/com.ciphermesh.vault.json.install
     @ONLY
 )
 
-# Template for development version
-set(VAULT_SERVICE_PATH ${VAULT_SERVICE_DEV_PATH})
+# Template for development version (points to wrapper script)
+set(VAULT_SERVICE_PATH ${VAULT_SERVICE_WRAPPER_PATH})
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/com.ciphermesh.vault.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/com.ciphermesh.vault.json
