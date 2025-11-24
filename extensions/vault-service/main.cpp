@@ -105,9 +105,24 @@ int main() {
         } catch (const json::exception& e) {
             std::cerr << "[Vault Service] JSON error: " << e.what() << std::endl;
             
+            // Try to extract requestId if possible
+            int requestId = -1;
+            try {
+                json partialRequest = json::parse(input);
+                requestId = partialRequest.value("requestId", -1);
+            } catch (...) {
+                // Ignore if we can't parse requestId
+            }
+            
             json errorResponse;
-            errorResponse["status"] = "error";
-            errorResponse["error"] = std::string("JSON parse error: ") + e.what();
+            if (requestId != -1) {
+                errorResponse["requestId"] = requestId;
+                errorResponse["success"] = false;
+                errorResponse["error"] = std::string("JSON parse error: ") + e.what();
+            } else {
+                errorResponse["status"] = "error";
+                errorResponse["error"] = std::string("JSON parse error: ") + e.what();
+            }
             
             writeNativeMessage(errorResponse.dump());
         } catch (const std::exception& e) {

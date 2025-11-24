@@ -107,14 +107,17 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
         if (masterPassword.empty()) {
             response["status"] = "error";
             response["error"] = "Password is required";
+            std::cerr << "[Vault Service] Error: Password is required" << std::endl;
             return response;
         }
         
         std::string vaultPath = request.value("vaultPath", getDefaultVaultPath());
+        std::cerr << "[Vault Service] Using vault path: " << vaultPath << std::endl;
         
         if (vaultPath.empty()) {
             response["status"] = "error";
             response["error"] = "Could not determine vault path";
+            std::cerr << "[Vault Service] Error: Could not determine vault path" << std::endl;
             return response;
         }
         
@@ -123,8 +126,11 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
         if (!vaultFile.good()) {
             response["status"] = "error";
             response["error"] = "Vault file not found at: " + vaultPath;
+            std::cerr << "[Vault Service] Error: Vault file not found at: " << vaultPath << std::endl;
             return response;
         }
+        
+        std::cerr << "[Vault Service] Vault file found, attempting to load..." << std::endl;
         
         // Create new vault instance
         std::unique_ptr<Vault> vault = std::make_unique<Vault>();
@@ -133,6 +139,7 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
         if (!vault->loadVault(vaultPath, masterPassword)) {
             response["status"] = "error";
             response["error"] = "Incorrect master password";
+            std::cerr << "[Vault Service] Error: Incorrect master password" << std::endl;
             return response;
         }
         
@@ -142,11 +149,13 @@ json VaultService::handleVerifyMasterPassword(const json& request) {
         response["status"] = "success";
         response["message"] = "Master password verified";
         response["verified"] = true;  // Add for native-host compatibility
+        std::cerr << "[Vault Service] Password verified successfully" << std::endl;
         return response;
         
     } catch (const std::exception& e) {
         response["status"] = "error";
         response["error"] = std::string("Error verifying password: ") + e.what();
+        std::cerr << "[Vault Service] Exception: " << e.what() << std::endl;
         return response;
     }
 }
