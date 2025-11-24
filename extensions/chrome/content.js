@@ -588,8 +588,9 @@
             
             console.log('[CipherMesh] Credentials response:', response);
             
-            if (response.success && response.data && response.data.entries) {
-                const entries = response.data.entries;
+            if (response.success && response.data) {
+                // Check for both 'entries' and 'credentials' fields (vault-service uses 'credentials' for multiple)
+                const entries = response.data.entries || response.data.credentials || [];
                 console.log('[CipherMesh] Found', entries.length, 'entries');
                 
                 if (entries.length === 0) {
@@ -693,7 +694,8 @@
             url: url,
             username: username
         }).then(response => {
-            if (response.success && response.data.entries && response.data.entries.length === 0) {
+            const entries = response.data && (response.data.entries || response.data.credentials) || [];
+            if (response.success && entries.length === 0) {
                 // No existing entry - ask to save
                 setTimeout(async () => {
                     const shouldSave = await showConfirmDialog(
