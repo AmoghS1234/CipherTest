@@ -18,8 +18,30 @@ VaultService::~VaultService() {
 }
 
 std::string VaultService::getDefaultVaultPath() {
-    // Use the same path as desktop app: ciphermesh.db in current directory
-    return "/home/amogh/Projects/CipherTest/build/ciphermesh.db";
+    // Try to use the same path as desktop app
+    // First check if HOME environment variable is set
+    const char* home = getenv("HOME");
+    if (!home) {
+        // Fallback to /tmp if HOME is not set
+        home = "/tmp";
+    }
+    
+    // Check for vault in ~/.ciphermesh/ directory (standard location)
+    std::string standardPath = std::string(home) + "/.ciphermesh/vault.db";
+    std::ifstream standardFile(standardPath);
+    if (standardFile.good()) {
+        return standardPath;
+    }
+    
+    // Fallback to current directory (for backward compatibility)
+    std::string currentDirPath = "ciphermesh.db";
+    std::ifstream currentDirFile(currentDirPath);
+    if (currentDirFile.good()) {
+        return currentDirPath;
+    }
+    
+    // Default to standard location even if file doesn't exist yet
+    return standardPath;
 }
 
 json VaultService::handleRequest(const json& request) {

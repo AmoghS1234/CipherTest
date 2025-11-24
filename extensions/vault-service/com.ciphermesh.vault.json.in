@@ -4,9 +4,9 @@
   "path": "@VAULT_SERVICE_PATH@",
   "type": "stdio",
   "allowed_extensions": [
-    "ciphermesh@password.manager"
+    "ciphermesh@ciphermesh.com"
   ],
   "allowed_origins": [
-    "chrome-extension://ciphermesh-extension-id/"
+    "chrome-extension://CHROME_EXTENSION_ID_REPLACE_ME/"
   ]
 }
