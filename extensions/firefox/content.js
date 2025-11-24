@@ -232,9 +232,9 @@
         }
         
         // Adjust password field padding to make room for both our button and browser's show/hide button
-        // We need at least 75px to accommodate both buttons without overlap
-        if (paddingRight < 75) {
-            passwordField.style.paddingRight = '80px';
+        // We need at least MIN_PADDING_FOR_BUTTONS to accommodate both buttons without overlap
+        if (paddingRight < MIN_PADDING_FOR_BUTTONS) {
+            passwordField.style.paddingRight = `${BUTTON_PADDING}px`;
         }
         
         parent.appendChild(button);
