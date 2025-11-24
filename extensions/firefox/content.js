@@ -8,9 +8,9 @@
     let isConnected = false;
     
     // Button positioning constants
-    const MIN_BUTTON_OFFSET = 40;      // Minimum distance from right edge to avoid browser buttons
-    const MIN_PADDING_FOR_BUTTONS = 75; // Minimum padding needed for both buttons
-    const BUTTON_PADDING = 80;          // Total padding to accommodate both buttons
+    const BROWSER_BUTTON_WIDTH = 35;    // Approximate width of browser's show/hide button
+    const OUR_BUTTON_RIGHT_MARGIN = 5;  // Our button's margin from right or from browser button
+    const OUR_BUTTON_WIDTH = 35;        // Our button's width including padding
     
     // Initialize on load
     function initialize() {
@@ -169,14 +169,17 @@
         console.log('[CipherMesh] Adding autofill button to password field');
         
         // Calculate button position to avoid conflicts with browser show/hide password button
-        // Most browsers add a show/hide button at around 5-10px from the right
-        // We need to position our button further left to avoid overlap
+        // Modern browsers typically add a show/hide button inside password fields
         const computedStyle = window.getComputedStyle(passwordField);
         const paddingRight = parseInt(computedStyle.paddingRight) || 0;
         
-        // Position button at least MIN_BUTTON_OFFSET from the right edge to avoid overlap
-        // If there's already significant padding, add to it
-        const rightOffset = Math.max(paddingRight + 5, MIN_BUTTON_OFFSET);
+        // Detect if browser has likely added a show/hide button (padding > 30px suggests this)
+        const hasBrowserButton = paddingRight > 30;
+        
+        // Position our button: if browser button exists, place to its left; otherwise close to right edge
+        const rightOffset = hasBrowserButton 
+            ? paddingRight + OUR_BUTTON_RIGHT_MARGIN  // To the left of browser button
+            : OUR_BUTTON_RIGHT_MARGIN;                // Close to right edge
         
         const button = document.createElement('button');
         button.type = 'button';
@@ -231,10 +234,14 @@
             parent.style.position = 'relative';
         }
         
-        // Adjust password field padding to make room for both our button and browser's show/hide button
-        // We need at least MIN_PADDING_FOR_BUTTONS to accommodate both buttons without overlap
-        if (paddingRight < MIN_PADDING_FOR_BUTTONS) {
-            passwordField.style.paddingRight = `${BUTTON_PADDING}px`;
+        // Adjust password field padding to make room for our button and browser button
+        // Calculate total padding needed based on what's already there
+        const totalPaddingNeeded = hasBrowserButton
+            ? paddingRight + OUR_BUTTON_WIDTH + OUR_BUTTON_RIGHT_MARGIN  // Both buttons
+            : OUR_BUTTON_WIDTH + OUR_BUTTON_RIGHT_MARGIN * 2;            // Just our button
+        
+        if (paddingRight < totalPaddingNeeded) {
+            passwordField.style.paddingRight = `${totalPaddingNeeded}px`;
         }
         
         parent.appendChild(button);
