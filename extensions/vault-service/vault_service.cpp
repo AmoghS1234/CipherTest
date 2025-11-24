@@ -33,6 +33,20 @@ std::string VaultService::getDefaultVaultPath() {
         return standardPath;
     }
     
+    // Check in build directory (common during development)
+    std::string buildPath = "build/ciphermesh.db";
+    std::ifstream buildFile(buildPath);
+    if (buildFile.good()) {
+        return buildPath;
+    }
+    
+    // Check in ../build directory (when running from subdirectory)
+    std::string parentBuildPath = "../build/ciphermesh.db";
+    std::ifstream parentBuildFile(parentBuildPath);
+    if (parentBuildFile.good()) {
+        return parentBuildPath;
+    }
+    
     // Fallback to current directory (for backward compatibility)
     std::string currentDirPath = "ciphermesh.db";
     std::ifstream currentDirFile(currentDirPath);
