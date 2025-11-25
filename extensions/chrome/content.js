@@ -188,7 +188,12 @@
         const password = passwordField.value;
         const url = window.location.hostname;
         
-        if (!username || !password) return;
+        console.log('[CipherMesh] Password submit detected - username:', username, 'password length:', password.length);
+        
+        if (!username || !password) {
+            console.log('[CipherMesh] Missing username or password, skipping save prompt');
+            return;
+        }
         
         // Don't prompt to save if this was autofilled
         if (passwordField.dataset.ciphermeshAutofilled === 'true') {
@@ -196,14 +201,24 @@
             return;
         }
         
+        console.log('[CipherMesh] Checking if credentials already exist...');
+        
         // Check if credentials already exist
         chrome.runtime.sendMessage({
             type: "GET_CREDENTIALS",
             url: url,
             username: username
         }).then(response => {
+            console.log('[CipherMesh] GET_CREDENTIALS response:', response);
             const entries = response.data && (response.data.entries || response.data.credentials) || [];
-            if (response.success && entries.length === 0) {
+            
+            // Show save prompt if:
+            // 1. Request succeeded and no entries found, OR
+            // 2. Request failed (vault might not be unlocked) - still offer to save
+            const shouldPrompt = (response.success && entries.length === 0) || !response.success;
+            
+            if (shouldPrompt) {
+                console.log('[CipherMesh] No existing entry or vault not ready - prompting to save');
                 // No existing entry - ask to save
                 setTimeout(async () => {
                     const shouldSave = await showConfirmDialog(
@@ -214,9 +229,21 @@
                         promptSaveCredentials(url, username, password);
                     }
                 }, 500);
+            } else {
+                console.log('[CipherMesh] Credentials already exist, not prompting');
             }
         }).catch(error => {
             console.error('[CipherMesh] Error checking credentials:', error);
+            // On error, still offer to save
+            setTimeout(async () => {
+                const shouldSave = await showConfirmDialog(
+                    `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                    'Save Password'
+                );
+                if (shouldSave) {
+                    promptSaveCredentials(url, username, password);
+                }
+            }, 500);
         });
     }
     
@@ -601,54 +628,72 @@
     function showConfirmDialog(message, title = 'Confirm') {
         return new Promise((resolve) => {
             const content = document.createElement('div');
-            content.innerHTML = `
-                <p style="margin: 0; color: #555; font-size: 15px; line-height: 1.5;">
-                    ${message}
-                </p>
+            content.style.cssText = 'all: initial !important; display: block !important;';
+            
+            const para = document.createElement('p');
+            para.innerHTML = message;
+            para.style.cssText = `
+                all: initial !important;
+                display: block !important;
+                margin: 0 !important;
+                color: #555 !important;
+                font-size: 15px !important;
+                line-height: 1.5 !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
             `;
+            content.appendChild(para);
             
             const yesButton = document.createElement('button');
             yesButton.textContent = 'Yes';
             yesButton.style.cssText = `
-                padding: 10px 24px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform 0.1s, box-shadow 0.2s;
+                all: initial !important;
+                display: inline-block !important;
+                padding: 10px 24px !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: transform 0.1s, box-shadow 0.2s !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                line-height: 1.5 !important;
             `;
             yesButton.addEventListener('mouseenter', () => {
-                yesButton.style.transform = 'translateY(-1px)';
-                yesButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                yesButton.style.setProperty('transform', 'translateY(-1px)', 'important');
+                yesButton.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
             });
             yesButton.addEventListener('mouseleave', () => {
-                yesButton.style.transform = 'translateY(0)';
-                yesButton.style.boxShadow = 'none';
+                yesButton.style.setProperty('transform', 'translateY(0)', 'important');
+                yesButton.style.setProperty('box-shadow', 'none', 'important');
             });
             
             const noButton = document.createElement('button');
             noButton.textContent = 'No';
             noButton.style.cssText = `
-                padding: 10px 24px;
-                background: white;
-                color: #666;
-                border: 2px solid #e0e0e0;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
+                all: initial !important;
+                display: inline-block !important;
+                padding: 10px 24px !important;
+                background: white !important;
+                background-color: white !important;
+                color: #666 !important;
+                border: 2px solid #e0e0e0 !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: all 0.2s !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                line-height: 1.5 !important;
             `;
             noButton.addEventListener('mouseenter', () => {
-                noButton.style.borderColor = '#999';
-                noButton.style.color = '#333';
+                noButton.style.setProperty('border-color', '#999', 'important');
+                noButton.style.setProperty('color', '#333', 'important');
             });
             noButton.addEventListener('mouseleave', () => {
-                noButton.style.borderColor = '#e0e0e0';
-                noButton.style.color = '#666';
+                noButton.style.setProperty('border-color', '#e0e0e0', 'important');
+                noButton.style.setProperty('color', '#666', 'important');
             });
             
             const modal = createModal(title, content, [noButton, yesButton]);
@@ -867,7 +912,12 @@
         const password = passwordField.value;
         const url = window.location.hostname;
         
-        if (!username || !password) return;
+        console.log('[CipherMesh] Form submit detected - username:', username, 'password length:', password.length);
+        
+        if (!username || !password) {
+            console.log('[CipherMesh] Missing username or password, skipping save prompt');
+            return;
+        }
         
         // Don't prompt to save if this was autofilled
         if (passwordField.dataset && passwordField.dataset.ciphermeshAutofilled === 'true') {
@@ -875,14 +925,24 @@
             return;
         }
         
+        console.log('[CipherMesh] Checking if credentials already exist...');
+        
         // Check if credentials already exist
         chrome.runtime.sendMessage({
             type: "GET_CREDENTIALS",
             url: url,
             username: username
         }).then(response => {
+            console.log('[CipherMesh] GET_CREDENTIALS response:', response);
             const entries = response.data && (response.data.entries || response.data.credentials) || [];
-            if (response.success && entries.length === 0) {
+            
+            // Show save prompt if:
+            // 1. Request succeeded and no entries found, OR
+            // 2. Request failed (vault might not be unlocked) - still offer to save
+            const shouldPrompt = (response.success && entries.length === 0) || !response.success;
+            
+            if (shouldPrompt) {
+                console.log('[CipherMesh] No existing entry or vault not ready - prompting to save');
                 // No existing entry - ask to save
                 setTimeout(async () => {
                     const shouldSave = await showConfirmDialog(
@@ -893,9 +953,21 @@
                         promptSaveCredentials(url, username, password);
                     }
                 }, 500);
+            } else {
+                console.log('[CipherMesh] Credentials already exist, not prompting');
             }
         }).catch(error => {
-            console.error('Error checking credentials:', error);
+            console.error('[CipherMesh] Error checking credentials:', error);
+            // On error, still offer to save
+            setTimeout(async () => {
+                const shouldSave = await showConfirmDialog(
+                    `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                    'Save Password'
+                );
+                if (shouldSave) {
+                    promptSaveCredentials(url, username, password);
+                }
+            }, 500);
         });
     }
     
