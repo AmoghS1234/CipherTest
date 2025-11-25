@@ -378,45 +378,76 @@
     function showMasterPasswordDialog() {
         return new Promise((resolve) => {
             const content = document.createElement('div');
-            content.innerHTML = `
-                <p style="margin: 0 0 16px 0 !important; color: #666 !important; font-size: 14px !important; line-height: 1.5 !important; padding: 0 !important; background: transparent !important; border: none !important;">
-                    Enter your CipherMesh master password to continue
-                </p>
-                <input type="password" id="ciphermesh-master-pwd" 
-                    placeholder="Master password" 
-                    style="
-                        width: 100% !important;
-                        padding: 12px 16px !important;
-                        border: 2px solid #e0e0e0 !important;
-                        border-radius: 8px !important;
-                        font-size: 15px !important;
-                        box-sizing: border-box !important;
-                        transition: border-color 0.2s !important;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-                        background: white !important;
-                        color: #333 !important;
-                        margin: 0 !important;
-                        outline: none !important;
-                        height: auto !important;
-                        line-height: 1.5 !important;
-                        -webkit-appearance: none !important;
-                        appearance: none !important;
-                    "
-                />
-            `;
+            content.style.cssText = 'all: initial !important; display: block !important;';
             
-            const input = content.querySelector('#ciphermesh-master-pwd');
+            const description = document.createElement('p');
+            description.textContent = 'Enter your CipherMesh master password to continue';
+            description.style.cssText = `
+                all: initial !important;
+                display: block !important;
+                margin: 0 0 16px 0 !important;
+                color: #666 !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+                padding: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            `;
+            content.appendChild(description);
+            
+            const input = document.createElement('input');
+            input.type = 'password';
+            input.id = 'ciphermesh-master-pwd';
+            input.placeholder = 'Master password';
+            input.style.cssText = `
+                all: initial !important;
+                display: block !important;
+                width: 100% !important;
+                padding: 12px 16px !important;
+                border: 2px solid #e0e0e0 !important;
+                border-radius: 8px !important;
+                font-size: 15px !important;
+                box-sizing: border-box !important;
+                transition: border-color 0.2s !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                background: white !important;
+                background-color: white !important;
+                color: #333 !important;
+                margin: 0 !important;
+                outline: none !important;
+                height: auto !important;
+                min-height: 44px !important;
+                line-height: 1.5 !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                appearance: none !important;
+                box-shadow: none !important;
+                text-indent: 0 !important;
+                text-align: left !important;
+                letter-spacing: normal !important;
+                word-spacing: normal !important;
+                text-transform: none !important;
+                text-shadow: none !important;
+                cursor: text !important;
+            `;
+            content.appendChild(input);
+            
             input.addEventListener('focus', () => {
                 input.style.setProperty('border-color', '#667eea', 'important');
                 input.style.setProperty('outline', 'none', 'important');
+                input.style.setProperty('box-shadow', '0 0 0 3px rgba(102, 126, 234, 0.1)', 'important');
             });
             input.addEventListener('blur', () => {
                 input.style.setProperty('border-color', '#e0e0e0', 'important');
+                input.style.setProperty('box-shadow', 'none', 'important');
             });
             
             const okButton = document.createElement('button');
             okButton.textContent = 'Unlock';
             okButton.style.cssText = `
+                all: initial !important;
+                display: inline-block !important;
                 padding: 10px 24px !important;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
                 color: white !important;
@@ -427,7 +458,7 @@
                 cursor: pointer !important;
                 transition: transform 0.1s, box-shadow 0.2s !important;
                 margin: 0 !important;
-                font-family: inherit !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                 line-height: 1.5 !important;
             `;
             okButton.addEventListener('mouseenter', () => {
@@ -442,8 +473,11 @@
             const cancelButton = document.createElement('button');
             cancelButton.textContent = 'Cancel';
             cancelButton.style.cssText = `
+                all: initial !important;
+                display: inline-block !important;
                 padding: 10px 24px !important;
                 background: white !important;
+                background-color: white !important;
                 color: #666 !important;
                 border: 2px solid #e0e0e0 !important;
                 border-radius: 6px !important;
@@ -452,7 +486,7 @@
                 cursor: pointer !important;
                 transition: all 0.2s !important;
                 margin: 0 !important;
-                font-family: inherit !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                 line-height: 1.5 !important;
             `;
             cancelButton.addEventListener('mouseenter', () => {
