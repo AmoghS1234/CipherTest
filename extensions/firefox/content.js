@@ -150,13 +150,39 @@
         
         // Listen for form submission to capture credentials (only if in a form)
         if (form) {
+            // Use capturing phase to catch the event before page navigation
             form.addEventListener('submit', (e) => {
-                handleFormSubmit(form, usernameField, passwordField);
+                console.log('[CipherMesh] Form submit event captured');
+                handleFormSubmit(form, usernameField, passwordField, e);
+            }, true);
+            
+            // Also listen for clicks on submit buttons inside the form
+            // This catches cases where JS handles the click before form submits
+            const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])');
+            submitButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    console.log('[CipherMesh] Submit button clicked');
+                    // Small delay to let the form populate any dynamic fields
+                    setTimeout(() => {
+                        handleFormSubmit(form, usernameField, passwordField, null);
+                    }, 50);
+                }, true);
             });
+            
+            // Also watch for Enter key in the form (often triggers submit)
+            form.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.target === passwordField || e.target === usernameField)) {
+                    console.log('[CipherMesh] Enter key pressed in form');
+                    setTimeout(() => {
+                        handleFormSubmit(form, usernameField, passwordField, null);
+                    }, 50);
+                }
+            }, true);
         } else {
             // For password fields not in forms, try to detect login buttons or Enter key
             passwordField.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    console.log('[CipherMesh] Enter key pressed (no form)');
                     handlePasswordSubmit(usernameField, passwordField);
                 }
             });
@@ -201,50 +227,8 @@
             return;
         }
         
-        console.log('[CipherMesh] Checking if credentials already exist...');
-        
-        // Check if credentials already exist
-        browser.runtime.sendMessage({
-            type: "GET_CREDENTIALS",
-            url: url,
-            username: username
-        }).then(response => {
-            console.log('[CipherMesh] GET_CREDENTIALS response:', response);
-            const entries = response.data && (response.data.entries || response.data.credentials) || [];
-            
-            // Show save prompt if:
-            // 1. Request succeeded and no entries found, OR
-            // 2. Request failed (vault might not be unlocked) - still offer to save
-            const shouldPrompt = (response.success && entries.length === 0) || !response.success;
-            
-            if (shouldPrompt) {
-                console.log('[CipherMesh] No existing entry or vault not ready - prompting to save');
-                // No existing entry - ask to save
-                setTimeout(async () => {
-                    const shouldSave = await showConfirmDialog(
-                        `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
-                        'Save Password'
-                    );
-                    if (shouldSave) {
-                        promptSaveCredentials(url, username, password);
-                    }
-                }, 500);
-            } else {
-                console.log('[CipherMesh] Credentials already exist, not prompting');
-            }
-        }).catch(error => {
-            console.error('[CipherMesh] Error checking credentials:', error);
-            // On error, still offer to save
-            setTimeout(async () => {
-                const shouldSave = await showConfirmDialog(
-                    `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
-                    'Save Password'
-                );
-                if (shouldSave) {
-                    promptSaveCredentials(url, username, password);
-                }
-            }, 500);
-        });
+        // Show save prompt immediately (don't wait for credential check)
+        showSavePasswordPrompt(url, username, password);
     }
     
     // Find username field in page (for password fields not in forms)
@@ -907,7 +891,7 @@
     }
     
     // Handle form submission
-    function handleFormSubmit(form, usernameField, passwordField) {
+    function handleFormSubmit(form, usernameField, passwordField, event) {
         const username = usernameField ? usernameField.value : '';
         const password = passwordField.value;
         const url = window.location.hostname;
@@ -925,50 +909,50 @@
             return;
         }
         
-        console.log('[CipherMesh] Checking if credentials already exist...');
-        
-        // Check if credentials already exist
-        browser.runtime.sendMessage({
-            type: "GET_CREDENTIALS",
+        // Store credentials for potential save - use sessionStorage in case page navigates
+        const pendingCredentials = {
             url: url,
-            username: username
-        }).then(response => {
-            console.log('[CipherMesh] GET_CREDENTIALS response:', response);
-            const entries = response.data && (response.data.entries || response.data.credentials) || [];
+            username: username,
+            password: password,
+            timestamp: Date.now()
+        };
+        
+        try {
+            sessionStorage.setItem('ciphermesh_pending_save', JSON.stringify(pendingCredentials));
+            console.log('[CipherMesh] Stored pending credentials in sessionStorage');
+        } catch (e) {
+            console.log('[CipherMesh] Could not store in sessionStorage:', e);
+        }
+        
+        // Show save prompt immediately (don't wait for credential check)
+        // This ensures the dialog appears before page navigation
+        showSavePasswordPrompt(url, username, password);
+    }
+    
+    // Show the save password prompt dialog
+    async function showSavePasswordPrompt(url, username, password) {
+        console.log('[CipherMesh] Showing save password prompt');
+        
+        try {
+            const shouldSave = await showConfirmDialog(
+                `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                'Save Password'
+            );
             
-            // Show save prompt if:
-            // 1. Request succeeded and no entries found, OR
-            // 2. Request failed (vault might not be unlocked) - still offer to save
-            const shouldPrompt = (response.success && entries.length === 0) || !response.success;
-            
-            if (shouldPrompt) {
-                console.log('[CipherMesh] No existing entry or vault not ready - prompting to save');
-                // No existing entry - ask to save
-                setTimeout(async () => {
-                    const shouldSave = await showConfirmDialog(
-                        `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
-                        'Save Password'
-                    );
-                    if (shouldSave) {
-                        promptSaveCredentials(url, username, password);
-                    }
-                }, 500);
+            if (shouldSave) {
+                console.log('[CipherMesh] User chose to save password');
+                promptSaveCredentials(url, username, password);
             } else {
-                console.log('[CipherMesh] Credentials already exist, not prompting');
+                console.log('[CipherMesh] User declined to save password');
             }
-        }).catch(error => {
-            console.error('[CipherMesh] Error checking credentials:', error);
-            // On error, still offer to save
-            setTimeout(async () => {
-                const shouldSave = await showConfirmDialog(
-                    `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
-                    'Save Password'
-                );
-                if (shouldSave) {
-                    promptSaveCredentials(url, username, password);
-                }
-            }, 500);
-        });
+            
+            // Clear pending credentials
+            try {
+                sessionStorage.removeItem('ciphermesh_pending_save');
+            } catch (e) {}
+        } catch (error) {
+            console.error('[CipherMesh] Error showing save prompt:', error);
+        }
     }
     
     // Show group selector dialog
