@@ -133,6 +133,18 @@
             ? findUsernameField(form, passwordField)
             : findUsernameFieldInPage(passwordField);
         
+        // Track manual typing vs autofill
+        // Set flag to false initially - will be set true by autofill, reset to false by typing
+        passwordField.dataset.ciphermeshAutofilled = 'false';
+        
+        // Listen for manual typing to reset the autofill flag
+        passwordField.addEventListener('input', (e) => {
+            // If the user is typing (inputType exists), it's manual input
+            if (e.inputType) {
+                passwordField.dataset.ciphermeshAutofilled = 'false';
+            }
+        });
+        
         // Add auto-fill button (always add, even without form)
         addAutoFillButton(passwordField, usernameField);
         
@@ -141,7 +153,71 @@
             form.addEventListener('submit', (e) => {
                 handleFormSubmit(form, usernameField, passwordField);
             });
+        } else {
+            // For password fields not in forms, try to detect login buttons or Enter key
+            passwordField.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handlePasswordSubmit(usernameField, passwordField);
+                }
+            });
+            
+            // Also try to find and watch login/submit buttons near the password field
+            watchNearbyButtons(passwordField, usernameField);
         }
+    }
+    
+    // Watch for clicks on nearby login buttons (for pages without forms)
+    function watchNearbyButtons(passwordField, usernameField) {
+        const parent = passwordField.closest('div, section, article') || passwordField.parentElement;
+        if (!parent) return;
+        
+        const buttons = parent.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]');
+        buttons.forEach(btn => {
+            const text = (btn.textContent || btn.value || '').toLowerCase();
+            if (text.match(/log\s*in|sign\s*in|submit|continue|next/)) {
+                btn.addEventListener('click', () => {
+                    setTimeout(() => handlePasswordSubmit(usernameField, passwordField), 100);
+                });
+            }
+        });
+    }
+    
+    // Handle password submission for fields not in forms
+    function handlePasswordSubmit(usernameField, passwordField) {
+        const username = usernameField ? usernameField.value : '';
+        const password = passwordField.value;
+        const url = window.location.hostname;
+        
+        if (!username || !password) return;
+        
+        // Don't prompt to save if this was autofilled
+        if (passwordField.dataset.ciphermeshAutofilled === 'true') {
+            console.log('[CipherMesh] Password was autofilled, not prompting to save');
+            return;
+        }
+        
+        // Check if credentials already exist
+        browser.runtime.sendMessage({
+            type: "GET_CREDENTIALS",
+            url: url,
+            username: username
+        }).then(response => {
+            const entries = response.data && (response.data.entries || response.data.credentials) || [];
+            if (response.success && entries.length === 0) {
+                // No existing entry - ask to save
+                setTimeout(async () => {
+                    const shouldSave = await showConfirmDialog(
+                        `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                        'Save Password'
+                    );
+                    if (shouldSave) {
+                        promptSaveCredentials(url, username, password);
+                    }
+                }, 500);
+            }
+        }).catch(error => {
+            console.error('[CipherMesh] Error checking credentials:', error);
+        });
     }
     
     // Find username field in page (for password fields not in forms)
@@ -724,6 +800,9 @@
             usernameField.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
+        // Mark as autofilled BEFORE setting value to prevent triggering save prompt
+        passwordField.dataset.ciphermeshAutofilled = 'true';
+        
         passwordField.value = entry.password;
         passwordField.dispatchEvent(new Event('input', { bubbles: true }));
         passwordField.dispatchEvent(new Event('change', { bubbles: true }));
@@ -790,13 +869,20 @@
         
         if (!username || !password) return;
         
+        // Don't prompt to save if this was autofilled
+        if (passwordField.dataset && passwordField.dataset.ciphermeshAutofilled === 'true') {
+            console.log('[CipherMesh] Password was autofilled, not prompting to save');
+            return;
+        }
+        
         // Check if credentials already exist
         browser.runtime.sendMessage({
             type: "GET_CREDENTIALS",
             url: url,
             username: username
         }).then(response => {
-            if (response.success && response.data.entries && response.data.entries.length === 0) {
+            const entries = response.data && (response.data.entries || response.data.credentials) || [];
+            if (response.success && entries.length === 0) {
                 // No existing entry - ask to save
                 setTimeout(async () => {
                     const shouldSave = await showConfirmDialog(
