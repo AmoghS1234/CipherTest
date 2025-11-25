@@ -270,60 +270,82 @@
         const overlay = document.createElement('div');
         overlay.className = 'ciphermesh-modal-overlay';
         overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: rgba(0, 0, 0, 0.5) !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-sizing: border-box !important;
         `;
         
         const modal = document.createElement('div');
         modal.className = 'ciphermesh-modal';
         modal.style.cssText = `
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            padding: 0;
-            max-width: 450px;
-            width: 90%;
-            animation: ciphermesh-modal-appear 0.2s ease-out;
+            background: white !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+            padding: 0 !important;
+            max-width: 450px !important;
+            width: 90% !important;
+            animation: ciphermesh-modal-appear 0.2s ease-out !important;
+            margin: 0 !important;
+            border: none !important;
+            box-sizing: border-box !important;
+            color: #333 !important;
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+            text-align: left !important;
         `;
         
         const header = document.createElement('div');
         header.style.cssText = `
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 24px;
-            border-radius: 12px 12px 0 0;
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            padding: 20px 24px !important;
+            border-radius: 12px 12px 0 0 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin: 0 !important;
+            border: none !important;
+            box-sizing: border-box !important;
+            line-height: 1.4 !important;
         `;
         header.innerHTML = `🔐 ${title}`;
         
         const body = document.createElement('div');
         body.style.cssText = `
-            padding: 24px;
-            color: #333;
+            padding: 24px !important;
+            color: #333 !important;
+            background: white !important;
+            margin: 0 !important;
+            border: none !important;
+            box-sizing: border-box !important;
         `;
         body.appendChild(content);
         
         const footer = document.createElement('div');
         footer.style.cssText = `
-            padding: 16px 24px;
-            background: #f8f9fa;
-            border-radius: 0 0 12px 12px;
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
+            padding: 16px 24px !important;
+            background: #f8f9fa !important;
+            border-radius: 0 0 12px 12px !important;
+            display: flex !important;
+            gap: 12px !important;
+            justify-content: flex-end !important;
+            margin: 0 !important;
+            border: none !important;
+            box-sizing: border-box !important;
         `;
         
         buttons.forEach(btn => footer.appendChild(btn));
@@ -357,75 +379,89 @@
         return new Promise((resolve) => {
             const content = document.createElement('div');
             content.innerHTML = `
-                <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
+                <p style="margin: 0 0 16px 0 !important; color: #666 !important; font-size: 14px !important; line-height: 1.5 !important; padding: 0 !important; background: transparent !important; border: none !important;">
                     Enter your CipherMesh master password to continue
                 </p>
                 <input type="password" id="ciphermesh-master-pwd" 
                     placeholder="Master password" 
                     style="
-                        width: 100%;
-                        padding: 12px 16px;
-                        border: 2px solid #e0e0e0;
-                        border-radius: 8px;
-                        font-size: 15px;
-                        box-sizing: border-box;
-                        transition: border-color 0.2s;
-                        font-family: inherit;
+                        width: 100% !important;
+                        padding: 12px 16px !important;
+                        border: 2px solid #e0e0e0 !important;
+                        border-radius: 8px !important;
+                        font-size: 15px !important;
+                        box-sizing: border-box !important;
+                        transition: border-color 0.2s !important;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                        background: white !important;
+                        color: #333 !important;
+                        margin: 0 !important;
+                        outline: none !important;
+                        height: auto !important;
+                        line-height: 1.5 !important;
+                        -webkit-appearance: none !important;
+                        appearance: none !important;
                     "
                 />
             `;
             
             const input = content.querySelector('#ciphermesh-master-pwd');
             input.addEventListener('focus', () => {
-                input.style.borderColor = '#667eea';
-                input.style.outline = 'none';
+                input.style.setProperty('border-color', '#667eea', 'important');
+                input.style.setProperty('outline', 'none', 'important');
             });
             input.addEventListener('blur', () => {
-                input.style.borderColor = '#e0e0e0';
+                input.style.setProperty('border-color', '#e0e0e0', 'important');
             });
             
             const okButton = document.createElement('button');
             okButton.textContent = 'Unlock';
             okButton.style.cssText = `
-                padding: 10px 24px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform 0.1s, box-shadow 0.2s;
+                padding: 10px 24px !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: transform 0.1s, box-shadow 0.2s !important;
+                margin: 0 !important;
+                font-family: inherit !important;
+                line-height: 1.5 !important;
             `;
             okButton.addEventListener('mouseenter', () => {
-                okButton.style.transform = 'translateY(-1px)';
-                okButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                okButton.style.setProperty('transform', 'translateY(-1px)', 'important');
+                okButton.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
             });
             okButton.addEventListener('mouseleave', () => {
-                okButton.style.transform = 'translateY(0)';
-                okButton.style.boxShadow = 'none';
+                okButton.style.setProperty('transform', 'translateY(0)', 'important');
+                okButton.style.setProperty('box-shadow', 'none', 'important');
             });
             
             const cancelButton = document.createElement('button');
             cancelButton.textContent = 'Cancel';
             cancelButton.style.cssText = `
-                padding: 10px 24px;
-                background: white;
-                color: #666;
-                border: 2px solid #e0e0e0;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
+                padding: 10px 24px !important;
+                background: white !important;
+                color: #666 !important;
+                border: 2px solid #e0e0e0 !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: all 0.2s !important;
+                margin: 0 !important;
+                font-family: inherit !important;
+                line-height: 1.5 !important;
             `;
             cancelButton.addEventListener('mouseenter', () => {
-                cancelButton.style.borderColor = '#999';
-                cancelButton.style.color = '#333';
+                cancelButton.style.setProperty('border-color', '#999', 'important');
+                cancelButton.style.setProperty('color', '#333', 'important');
             });
             cancelButton.addEventListener('mouseleave', () => {
-                cancelButton.style.borderColor = '#e0e0e0';
-                cancelButton.style.color = '#666';
+                cancelButton.style.setProperty('border-color', '#e0e0e0', 'important');
+                cancelButton.style.setProperty('color', '#666', 'important');
             });
             
             const modal = createModal('Master Password', content, [cancelButton, okButton]);
