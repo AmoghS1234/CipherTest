@@ -116,18 +116,35 @@
     // Process individual password field
     function processPasswordField(passwordField) {
         const form = passwordField.closest('form');
-        if (!form) return;
         
-        // Find username field (email or text input before password)
-        const usernameField = findUsernameField(form, passwordField);
+        // Find username field - look in form if available, otherwise in page
+        const usernameField = form 
+            ? findUsernameField(form, passwordField)
+            : findUsernameFieldInPage(passwordField);
         
-        // Add auto-fill button
+        // Add auto-fill button (always add, even without form)
         addAutoFillButton(passwordField, usernameField);
         
-        // Listen for form submission to capture credentials
-        form.addEventListener('submit', (e) => {
-            handleFormSubmit(form, usernameField, passwordField);
-        });
+        // Listen for form submission to capture credentials (only if in a form)
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                handleFormSubmit(form, usernameField, passwordField);
+            });
+        }
+    }
+    
+    // Find username field in page (for password fields not in forms)
+    function findUsernameFieldInPage(passwordField) {
+        // Look for common username/email inputs near the password field
+        const allInputs = document.querySelectorAll('input[type="text"], input[type="email"]');
+        for (const input of allInputs) {
+            const name = (input.name || '').toLowerCase();
+            const id = (input.id || '').toLowerCase();
+            if (name.match(/user|email|login|account/) || id.match(/user|email|login|account/)) {
+                return input;
+            }
+        }
+        return null;
     }
     
     // Find username field in form
