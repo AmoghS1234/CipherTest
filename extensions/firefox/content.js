@@ -148,18 +148,106 @@
         // Add auto-fill button (always add, even without form)
         addAutoFillButton(passwordField, usernameField);
         
+        // Create a handler function that we can use for multiple events
+        let saveDialogShowing = false;
+        const handleSubmitAttempt = async (e) => {
+            // Prevent duplicate dialogs
+            if (saveDialogShowing) {
+                console.log('[CipherMesh] Save dialog already showing, ignoring duplicate event');
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }
+                return;
+            }
+            
+            // Skip if we already processed this form (avoid infinite loop after we call form.submit())
+            if (form && form.getAttribute('data-ciphermesh-submitted') === 'true') {
+                console.log('[CipherMesh] Form already processed, allowing submission');
+                form.removeAttribute('data-ciphermesh-submitted');
+                return;
+            }
+            
+            const username = usernameField ? usernameField.value : '';
+            const password = passwordField.value;
+            const url = window.location.hostname;
+            
+            console.log('[CipherMesh] Submit attempt detected - username:', username, 'password length:', password.length);
+            
+            // Check if we should show save dialog
+            if (!username || !password) {
+                console.log('[CipherMesh] Missing username or password, allowing normal submission');
+                return;
+            }
+            
+            // Don't prompt to save if this was autofilled
+            if (passwordField.dataset && passwordField.dataset.ciphermeshAutofilled === 'true') {
+                console.log('[CipherMesh] Password was autofilled, allowing normal submission');
+                return;
+            }
+            
+            // CRITICAL: Prevent the form from submitting immediately so the popup stays visible
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                console.log('[CipherMesh] Prevented default submission to show save dialog');
+            }
+            
+            saveDialogShowing = true;
+            
+            // Show the save dialog
+            try {
+                const shouldSave = await showConfirmDialog(
+                    `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
+                    'Save Password'
+                );
+                
+                if (shouldSave) {
+                    console.log('[CipherMesh] User chose to save password');
+                    await promptSaveCredentials(url, username, password);
+                } else {
+                    console.log('[CipherMesh] User declined to save password');
+                }
+            } catch (error) {
+                console.error('[CipherMesh] Error showing save prompt:', error);
+            } finally {
+                saveDialogShowing = false;
+            }
+            
+            // Now submit the form after user has responded
+            if (form) {
+                console.log('[CipherMesh] Resuming form submission');
+                form.setAttribute('data-ciphermesh-submitted', 'true');
+                form.submit();
+            }
+        };
+        
         // Listen for form submission to capture credentials (only if in a form)
         if (form) {
-            // Use capturing phase to catch the event before page navigation
-            form.addEventListener('submit', (e) => {
-                // Skip if we already processed this form (avoid infinite loop after we call form.submit())
-                if (form.getAttribute('data-ciphermesh-submitted') === 'true') {
-                    console.log('[CipherMesh] Form already processed, allowing submission');
-                    form.removeAttribute('data-ciphermesh-submitted');
-                    return;
+            // Use capturing phase to catch the event before any other handlers
+            form.addEventListener('submit', handleSubmitAttempt, true);
+            
+            // Also intercept clicks on submit buttons within the form
+            // This catches cases where the button has its own click handler that might navigate
+            const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])');
+            submitButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    // Only handle if this would trigger form submission
+                    if (form.getAttribute('data-ciphermesh-submitted') !== 'true') {
+                        console.log('[CipherMesh] Submit button clicked');
+                        handleSubmitAttempt(e);
+                    }
+                }, true);
+            });
+            
+            // Also intercept Enter key in form fields
+            form.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.target === passwordField || e.target === usernameField)) {
+                    console.log('[CipherMesh] Enter key pressed in form field');
+                    handleSubmitAttempt(e);
                 }
-                console.log('[CipherMesh] Form submit event captured');
-                handleFormSubmit(form, usernameField, passwordField, e);
             }, true);
         } else {
             // For password fields not in forms, try to detect login buttons or Enter key
@@ -871,77 +959,6 @@
         });
         
         document.body.appendChild(selector);
-    }
-    
-    // Handle form submission
-    function handleFormSubmit(form, usernameField, passwordField, event) {
-        const username = usernameField ? usernameField.value : '';
-        const password = passwordField.value;
-        const url = window.location.hostname;
-        
-        console.log('[CipherMesh] Form submit detected - username:', username, 'password length:', password.length);
-        
-        if (!username || !password) {
-            console.log('[CipherMesh] Missing username or password, skipping save prompt');
-            return;
-        }
-        
-        // Don't prompt to save if this was autofilled
-        if (passwordField.dataset && passwordField.dataset.ciphermeshAutofilled === 'true') {
-            console.log('[CipherMesh] Password was autofilled, not prompting to save');
-            return;
-        }
-        
-        // CRITICAL: Prevent the form from submitting immediately so the popup stays visible
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            console.log('[CipherMesh] Prevented default form submission to show save dialog');
-        }
-        
-        // Show save prompt and wait for user response before allowing navigation
-        showSavePasswordPromptAndSubmit(url, username, password, form);
-    }
-    
-    // Show the save password prompt dialog and then submit the form
-    async function showSavePasswordPromptAndSubmit(url, username, password, form) {
-        console.log('[CipherMesh] Showing save password prompt');
-        
-        try {
-            const shouldSave = await showConfirmDialog(
-                `Save password for <strong>${username}</strong> on <strong>${url}</strong> to your CipherMesh vault?`,
-                'Save Password'
-            );
-            
-            if (shouldSave) {
-                console.log('[CipherMesh] User chose to save password');
-                // Save credentials first, then submit form
-                await promptSaveCredentials(url, username, password);
-            } else {
-                console.log('[CipherMesh] User declined to save password');
-            }
-            
-            // Clear pending credentials
-            try {
-                sessionStorage.removeItem('ciphermesh_pending_save');
-            } catch (e) {}
-            
-            // Now submit the form after user has responded
-            if (form) {
-                console.log('[CipherMesh] Resuming form submission');
-                // Use a hidden submit button or direct submit to avoid re-triggering our handler
-                // Remove our event listener temporarily by marking form as processed
-                form.setAttribute('data-ciphermesh-submitted', 'true');
-                form.submit();
-            }
-        } catch (error) {
-            console.error('[CipherMesh] Error showing save prompt:', error);
-            // On error, still submit the form so user can log in
-            if (form) {
-                form.setAttribute('data-ciphermesh-submitted', 'true');
-                form.submit();
-            }
-        }
     }
     
     // Show the save password prompt dialog (for non-form submissions)
