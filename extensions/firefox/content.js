@@ -97,6 +97,17 @@
         
         let processed = 0;
         passwordFields.forEach(field => {
+            // Skip password fields that are part of CipherMesh's own UI (like master password dialog)
+            if (field.id && field.id.startsWith('ciphermesh-')) {
+                console.log('[CipherMesh] Skipping CipherMesh UI field:', field.id);
+                return;
+            }
+            // Skip if field is inside a CipherMesh modal
+            if (field.closest('.ciphermesh-modal-overlay') || field.closest('.ciphermesh-modal')) {
+                console.log('[CipherMesh] Skipping field inside CipherMesh modal');
+                return;
+            }
+            
             if (!field.hasAttribute(CIPHERMESH_MARKER) && isVisible(field)) {
                 field.setAttribute(CIPHERMESH_MARKER, 'true');
                 processPasswordField(field);
@@ -180,13 +191,15 @@
         
         console.log('[CipherMesh] Adding autofill button to password field');
         
-        // Calculate button position to avoid conflicts
+        // Calculate button position to avoid conflicts with browser's show/hide button
         const computedStyle = window.getComputedStyle(passwordField);
         const paddingRight = parseInt(computedStyle.paddingRight) || 0;
         
-        // Check if there are other buttons (like show/hide password)
-        // If padding is large, it likely means there's already a button
-        const rightOffset = paddingRight > 30 ? paddingRight + 5 : 5;
+        // Browser show/hide buttons are typically ~30px wide and positioned at right: 5-10px
+        // We position our button to the LEFT of any existing button
+        // If padding > 30, browser likely has a show/hide button, so we offset more
+        const browserButtonWidth = 35;
+        const rightOffset = paddingRight > 30 ? paddingRight + 5 : 40; // Always offset at least 40px to avoid overlap
         
         const button = document.createElement('button');
         button.type = 'button';
@@ -241,9 +254,11 @@
             parent.style.position = 'relative';
         }
         
-        // Adjust password field padding to make room for button if needed
-        if (paddingRight < 40) {
-            passwordField.style.paddingRight = '45px';
+        // Adjust password field padding to make room for both buttons
+        // Our button is ~35px wide, plus we need space for browser's button if present
+        const totalPaddingNeeded = paddingRight > 30 ? paddingRight + 45 : 80;
+        if (paddingRight < totalPaddingNeeded) {
+            passwordField.style.paddingRight = `${totalPaddingNeeded}px`;
         }
         
         parent.appendChild(button);
