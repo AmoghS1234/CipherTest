@@ -653,6 +653,9 @@ void MainWindow::setupUi()
     // Breach check status label
     m_breachStatusLabel = new QLabel("", this);
     m_breachStatusLabel->setWordWrap(true);
+    m_breachStatusLabel->setTextFormat(Qt::RichText);
+    m_breachStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_breachStatusLabel->setMaximumWidth(600); // Ensure it doesn't exceed reasonable width
     m_breachStatusLabel->hide();
     detailsLayout->addRow("", m_breachStatusLabel);
     
@@ -1173,10 +1176,10 @@ void MainWindow::onCheckPasswordBreach()
             
             if (count < 0) {
                 // API error occurred
-                m_breachStatusLabel->setText("⚠️ Unable to check breach status. Please try again.");
+                m_breachStatusLabel->setText("<b>⚠️ Unable to check.</b> Try again.");
                 m_breachStatusLabel->setStyleSheet("color: #f57c00; font-weight: bold;");
             } else if (isCompromised) {
-                m_breachStatusLabel->setText(QString("⚠️ WARNING: This password has been seen %1 times in data breaches!").arg(count));
+                m_breachStatusLabel->setText(QString("<b>⚠️ BREACHED:</b> Seen %1 times in breaches!").arg(QString::number(count)));
                 m_breachStatusLabel->setStyleSheet("color: #d32f2f; font-weight: bold;");
                 
                 // Show toast notification
@@ -1184,7 +1187,7 @@ void MainWindow::onCheckPasswordBreach()
                 Toast* toast = new Toast("Password compromised! Consider changing it.", ToastType::Error, this);
                 toast->show();
             } else {
-                m_breachStatusLabel->setText("✓ Good news! This password has not been found in known breaches.");
+                m_breachStatusLabel->setText("<b>✓ Safe:</b> Not found in known breaches.");
                 m_breachStatusLabel->setStyleSheet("color: #388e3c; font-weight: bold;");
                 
                 // Show toast notification

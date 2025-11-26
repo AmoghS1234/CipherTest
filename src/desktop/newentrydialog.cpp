@@ -106,6 +106,9 @@ void NewEntryDialog::setupUi() {
     // --- Breach Status Label ---
     m_breachStatusLabel = new QLabel("", this);
     m_breachStatusLabel->setWordWrap(true);
+    m_breachStatusLabel->setTextFormat(Qt::RichText);
+    m_breachStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_breachStatusLabel->setMaximumWidth(500); // Ensure it doesn't exceed reasonable width
     m_breachStatusLabel->hide();
     
     // --- Strength Meter ---
@@ -352,13 +355,13 @@ void NewEntryDialog::onCheckBreach() {
         
         if (count < 0) {
             // API error occurred
-            m_breachStatusLabel->setText("⚠️ Unable to check breach status. Please try again.");
+            m_breachStatusLabel->setText("<b>⚠️ Unable to check.</b> Try again.");
             m_breachStatusLabel->setStyleSheet("color: #f57c00;");
         } else if (isCompromised) {
-            m_breachStatusLabel->setText(QString("⚠️ WARNING: This password has been seen %1 times in data breaches!").arg(count));
+            m_breachStatusLabel->setText(QString("<b>⚠️ BREACHED:</b> Seen %1 times in data breaches!").arg(QString::number(count)));
             m_breachStatusLabel->setStyleSheet("color: #d32f2f; font-weight: bold;");
         } else {
-            m_breachStatusLabel->setText("✓ Good news! This password has not been found in known breaches.");
+            m_breachStatusLabel->setText("<b>✓ Safe:</b> Not found in known breaches.");
             m_breachStatusLabel->setStyleSheet("color: #388e3c;");
         }
         m_breachStatusLabel->show();
