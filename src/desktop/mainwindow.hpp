@@ -116,6 +116,9 @@ private:
     QTextEdit* m_notesEdit;
     QLabel* m_timestampLabel; // NEW: Display entry timestamps
     
+    QLabel* m_totpCodeLabel;
+    QTimer* m_totpRefreshTimer;
+    
     QPushButton* m_copyUsernameButton;
     QPushButton* m_copyPasswordButton;
     QPushButton* m_showPasswordButton;
@@ -149,4 +152,5 @@ private:
 private slots:
     void onAutoLockTimeout();
     void onAutoLockTimeoutChanged(int minutes);
+    void refreshTOTPCode();
 };

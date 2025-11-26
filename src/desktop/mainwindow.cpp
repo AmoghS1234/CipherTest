@@ -12,6 +12,7 @@
 #include "toast.hpp"
 #include "webrtcservice.hpp" 
 #include "themes.hpp"
+#include "totp.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -82,7 +83,8 @@ MainWindow::MainWindow(const QString& userId, QWidget *parent)
       m_actionIconColor("#ffffff"),
       m_uiIconColor("#e0e0e0"),
       m_autoLockTimer(nullptr),
-      m_recentMenu(nullptr)
+      m_recentMenu(nullptr),
+      m_totpRefreshTimer(nullptr)
 {
     setWindowTitle("CipherMesh - (Locked) - " + m_currentUserId);
     
@@ -161,6 +163,11 @@ MainWindow::MainWindow(const QString& userId, QWidget *parent)
     updateIcons();
     updateWindowTitle();
     m_detailsStack->setCurrentIndex(0);
+    
+    // Setup TOTP refresh timer (refresh every second)
+    m_totpRefreshTimer = new QTimer(this);
+    connect(m_totpRefreshTimer, &QTimer::timeout, this, &MainWindow::refreshTOTPCode);
+    m_totpRefreshTimer->start(1000); // Refresh every second
     
     // Install event filter to detect user activity
     qApp->installEventFilter(this);
@@ -575,6 +582,14 @@ void MainWindow::setupUi()
     passLayout->addWidget(m_copyPasswordButton);
     passLayout->addWidget(m_showPasswordButton);
     detailsLayout->addRow("Password:", passLayout);
+    
+    // TOTP Code display
+    m_totpCodeLabel = new QLabel("------", this);
+    m_totpCodeLabel->setObjectName("TOTPCodeLabel");
+    m_totpCodeLabel->setFont(QFont("Monospace", 14, QFont::Bold));
+    m_totpCodeLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_totpCodeLabel->setStyleSheet("color: #2196f3; padding: 4px;");
+    detailsLayout->addRow("2FA Code:", m_totpCodeLabel);
 
     m_locationsList = new QListWidget(this);
     m_locationsList->setMinimumHeight(80);
@@ -1536,5 +1551,48 @@ void MainWindow::onRecentEntrySelected() {
             m_entryListWidget->setCurrentRow(j);
             break;
         }
+    }
+}
+
+void MainWindow::refreshTOTPCode() {
+    // Get the currently selected entry
+    QListWidgetItem* currentItem = m_entryListWidget->currentItem();
+    if (!currentItem || !m_vault) {
+        m_totpCodeLabel->setText("------");
+        return;
+    }
+    
+    auto it = m_entryMap.find(currentItem);
+    if (it == m_entryMap.end()) {
+        m_totpCodeLabel->setText("------");
+        return;
+    }
+    
+    const CipherMesh::Core::VaultEntry& entry = it.value();
+    
+    // Check if entry has a TOTP secret
+    if (entry.totp_secret.empty()) {
+        m_totpCodeLabel->setText("------");
+        m_totpCodeLabel->setStyleSheet("color: #666; padding: 4px;");
+        return;
+    }
+    
+    // Generate TOTP code
+    try {
+        std::string code = CipherMesh::Utils::TOTP::generateCode(entry.totp_secret);
+        m_totpCodeLabel->setText(QString::fromStdString(code));
+        m_totpCodeLabel->setStyleSheet("color: #2196f3; padding: 4px;");
+        
+        // Calculate time remaining in current 30s window
+        long long currentTime = std::time(nullptr);
+        int timeRemaining = 30 - (currentTime % 30);
+        
+        // Change color to warning when less than 5 seconds remain
+        if (timeRemaining <= 5) {
+            m_totpCodeLabel->setStyleSheet("color: #ff9800; padding: 4px;");
+        }
+    } catch (const std::exception& e) {
+        m_totpCodeLabel->setText("ERROR");
+        m_totpCodeLabel->setStyleSheet("color: #d32f2f; padding: 4px;");
     }
 }

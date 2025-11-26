@@ -25,6 +25,7 @@ struct VaultEntry {
     long long lastModified;     // Unix timestamp when entry was last modified
     long long lastAccessed;     // Unix timestamp when entry was last accessed
     long long passwordExpiry;   // Unix timestamp when password expires (0 = no expiry)
+    std::string totp_secret;    // TOTP secret key (Base32 encoded)
 
     VaultEntry() : id(-1), createdAt(0), lastModified(0), lastAccessed(0), passwordExpiry(0) {}
     VaultEntry(int id, std::string t, std::string u, std::string n) 

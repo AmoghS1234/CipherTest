@@ -69,6 +69,8 @@ private:
     QLabel* m_breachStatusLabel;
     BreachChecker* m_breachChecker;
     
+    QLineEdit* m_totpSecretEdit;
+    
     // Map to store temporary location data in the list
     QMap<QListWidgetItem*, CipherMesh::Core::Location> m_locationItemMap;
 };

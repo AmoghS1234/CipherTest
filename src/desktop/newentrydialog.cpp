@@ -32,6 +32,7 @@ NewEntryDialog::NewEntryDialog(CipherMesh::Core::Vault* vault, const CipherMesh:
     m_titleEdit->setText(QString::fromStdString(entry.title));
     m_usernameEdit->setText(QString::fromStdString(entry.username));
     m_notesEdit->setText(QString::fromStdString(entry.notes));
+    m_totpSecretEdit->setText(QString::fromStdString(entry.totp_secret));
     
     m_locations = entry.locations; // Copy existing locations
     loadLocations(m_locations);
@@ -149,6 +150,14 @@ void NewEntryDialog::setupUi() {
     formLayout->addRow("", m_breachStatusLabel);
     formLayout->addRow("Confirm:", m_confirmEdit);
     formLayout->addRow("Strength:", strengthLayout);
+    
+    // TOTP Secret field
+    m_totpSecretEdit = new QLineEdit(this);
+    m_totpSecretEdit->setPlaceholderText("e.g., JBSWY3DPEHPK3PXP (Base32 encoded)");
+    QLabel* totpHelpLabel = new QLabel("<small>Optional: Add 2FA secret key for TOTP codes</small>", this);
+    totpHelpLabel->setStyleSheet("color: #666;");
+    formLayout->addRow("2FA Secret:", m_totpSecretEdit);
+    formLayout->addRow("", totpHelpLabel);
     
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(m_messageLabel);
@@ -313,6 +322,7 @@ CipherMesh::Core::VaultEntry NewEntryDialog::getEntryData() const {
     entry.title = m_titleEdit->text().toStdString();
     entry.username = m_usernameEdit->text().toStdString();
     entry.notes = m_notesEdit->toPlainText().toStdString();
+    entry.totp_secret = m_totpSecretEdit->text().toStdString();
     entry.locations = m_locations;
     return entry;
 }

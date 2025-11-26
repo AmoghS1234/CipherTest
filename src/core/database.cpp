@@ -52,9 +52,20 @@ void Database::createTables() {
             last_modified INTEGER DEFAULT 0,
             last_accessed INTEGER DEFAULT 0,
             password_expiry INTEGER DEFAULT 0,
+            totp_secret TEXT DEFAULT '',
             FOREIGN KEY(group_id) REFERENCES groups(id) ON DELETE CASCADE 
         ); 
     )");
+    
+    // Add totp_secret column if it doesn't exist (migration for existing databases)
+    // This will fail silently if column already exists
+    try {
+        exec(R"( 
+            ALTER TABLE entries ADD COLUMN totp_secret TEXT DEFAULT '';
+        )");
+    } catch (const DBException&) {
+        // Column already exists, ignore error
+    }
     
     exec(R"( CREATE TABLE IF NOT EXISTS locations ( id INTEGER PRIMARY KEY AUTOINCREMENT, entry_id INTEGER NOT NULL, type TEXT NOT NULL, value TEXT NOT NULL, FOREIGN KEY(entry_id) REFERENCES entries(id) ON DELETE CASCADE ); )");
     
@@ -277,7 +288,7 @@ void Database::storeEntry(int groupId, VaultEntry& entry, const std::vector<unsi
     try {
         sqlite3_stmt* stmt;
         long long now = std::time(nullptr);
-        const char* sql = "INSERT INTO entries (group_id, title, username, notes, encrypted_password, created_at, last_modified, last_accessed, password_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        const char* sql = "INSERT INTO entries (group_id, title, username, notes, encrypted_password, created_at, last_modified, last_accessed, password_expiry, totp_secret) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
         int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
         check_sqlite(rc, m_db);
         sqlite3_bind_int(stmt, 1, groupId);
@@ -289,6 +300,7 @@ void Database::storeEntry(int groupId, VaultEntry& entry, const std::vector<unsi
         sqlite3_bind_int64(stmt, 7, now); // last_modified
         sqlite3_bind_int64(stmt, 8, now); // last_accessed
         sqlite3_bind_int64(stmt, 9, entry.passwordExpiry); // password_expiry
+        sqlite3_bind_text(stmt, 10, entry.totp_secret.c_str(), -1, SQLITE_STATIC); // totp_secret
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
         entry.id = sqlite3_last_insert_rowid(m_db);
@@ -316,7 +328,7 @@ void Database::storeEntry(int groupId, VaultEntry& entry, const std::vector<unsi
 std::vector<VaultEntry> Database::getEntriesForGroup(int groupId) {
     std::vector<VaultEntry> entries;
     sqlite3_stmt* stmt;
-    const char* sql = "SELECT id, title, username, notes, created_at, last_modified, last_accessed, password_expiry FROM entries WHERE group_id = ? ORDER BY title;";
+    const char* sql = "SELECT id, title, username, notes, created_at, last_modified, last_accessed, password_expiry, totp_secret FROM entries WHERE group_id = ? ORDER BY title;";
     int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
     check_sqlite(rc, m_db);
     sqlite3_bind_int(stmt, 1, groupId);
@@ -330,6 +342,8 @@ std::vector<VaultEntry> Database::getEntriesForGroup(int groupId) {
         entry.lastModified = sqlite3_column_int64(stmt, 5);
         entry.lastAccessed = sqlite3_column_int64(stmt, 6);
         entry.passwordExpiry = sqlite3_column_int64(stmt, 7);
+        const unsigned char* totp_ptr = sqlite3_column_text(stmt, 8);
+        entry.totp_secret = totp_ptr ? reinterpret_cast<const char*>(totp_ptr) : "";
         entry.locations = getLocationsForEntry(id);
         entries.push_back(std::move(entry));
     }
@@ -393,7 +407,7 @@ std::vector<VaultEntry> Database::findEntriesByLocation(const std::string& locat
 std::vector<VaultEntry> Database::searchEntries(const std::string& searchTerm) {
     std::vector<VaultEntry> entries;
     sqlite3_stmt* stmt;
-    const char* sql = R"( SELECT id, title, username, notes FROM entries WHERE title LIKE ? OR username LIKE ? UNION SELECT DISTINCT e.id, e.title, e.username, e.notes FROM entries e JOIN locations l ON e.id = l.entry_id WHERE l.value LIKE ?; )";
+    const char* sql = R"( SELECT id, title, username, notes, totp_secret FROM entries WHERE title LIKE ? OR username LIKE ? UNION SELECT DISTINCT e.id, e.title, e.username, e.notes, e.totp_secret FROM entries e JOIN locations l ON e.id = l.entry_id WHERE l.value LIKE ?; )";
     int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
     check_sqlite(rc, m_db);
     std::string likeTerm = "%" + searchTerm + "%";
@@ -405,7 +419,9 @@ std::vector<VaultEntry> Database::searchEntries(const std::string& searchTerm) {
         std::string title = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
         std::string username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
         std::string notes = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        const unsigned char* totp_ptr = sqlite3_column_text(stmt, 4);
         VaultEntry entry(id, title, username, notes);
+        entry.totp_secret = totp_ptr ? reinterpret_cast<const char*>(totp_ptr) : "";
         entry.locations = getLocationsForEntry(id);
         entries.push_back(std::move(entry));
     }
@@ -446,7 +462,7 @@ void Database::updateEntry(const VaultEntry& entry, const std::vector<unsigned c
     exec("BEGIN TRANSACTION;");
     try {
         sqlite3_stmt* stmt;
-        const char* sql = "UPDATE entries SET title = ?, username = ?, notes = ?, last_modified = ?, password_expiry = ? WHERE id = ?;";
+        const char* sql = "UPDATE entries SET title = ?, username = ?, notes = ?, last_modified = ?, password_expiry = ?, totp_secret = ? WHERE id = ?;";
         int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
         check_sqlite(rc, m_db);
         sqlite3_bind_text(stmt, 1, entry.title.c_str(), -1, SQLITE_STATIC);
@@ -454,7 +470,8 @@ void Database::updateEntry(const VaultEntry& entry, const std::vector<unsigned c
         sqlite3_bind_text(stmt, 3, entry.notes.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_int64(stmt, 4, std::time(nullptr));
         sqlite3_bind_int64(stmt, 5, entry.passwordExpiry);
-        sqlite3_bind_int(stmt, 6, entry.id);
+        sqlite3_bind_text(stmt, 6, entry.totp_secret.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 7, entry.id);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
 
@@ -582,7 +599,7 @@ void Database::updateEntryAccessTime(int entryId) {
 std::vector<VaultEntry> Database::getRecentlyAccessedEntries(int groupId, int limit) {
     std::vector<VaultEntry> entries;
     sqlite3_stmt* stmt;
-    const char* sql = "SELECT id, title, username, notes, created_at, last_modified, last_accessed, password_expiry FROM entries WHERE group_id = ? AND last_accessed > 0 ORDER BY last_accessed DESC LIMIT ?;";
+    const char* sql = "SELECT id, title, username, notes, created_at, last_modified, last_accessed, password_expiry, totp_secret FROM entries WHERE group_id = ? AND last_accessed > 0 ORDER BY last_accessed DESC LIMIT ?;";
     int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, 0);
     check_sqlite(rc, m_db);
     sqlite3_bind_int(stmt, 1, groupId);
@@ -597,6 +614,8 @@ std::vector<VaultEntry> Database::getRecentlyAccessedEntries(int groupId, int li
         entry.lastModified = sqlite3_column_int64(stmt, 5);
         entry.lastAccessed = sqlite3_column_int64(stmt, 6);
         entry.passwordExpiry = sqlite3_column_int64(stmt, 7);
+        const unsigned char* totp_ptr = sqlite3_column_text(stmt, 8);
+        entry.totp_secret = totp_ptr ? reinterpret_cast<const char*>(totp_ptr) : "";
         entry.locations = getLocationsForEntry(id);
         entries.push_back(std::move(entry));
     }
