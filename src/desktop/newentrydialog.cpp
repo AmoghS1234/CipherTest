@@ -46,7 +46,7 @@ NewEntryDialog::~NewEntryDialog() {}
 
 void NewEntryDialog::setupUi() {
     setModal(true);
-    setMinimumWidth(500);
+    setMinimumWidth(550); // Increased from 500 to accommodate all buttons
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(20, 20, 20, 20);

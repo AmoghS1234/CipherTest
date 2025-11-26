@@ -13,6 +13,7 @@
 #include "webrtcservice.hpp" 
 #include "themes.hpp"
 #include "totp.hpp"
+#include "breach_checker.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -85,9 +86,13 @@ MainWindow::MainWindow(const QString& userId, QWidget *parent)
       m_uiIconColor("#e0e0e0"),
       m_autoLockTimer(nullptr),
       m_recentMenu(nullptr),
-      m_totpRefreshTimer(nullptr)
+      m_totpRefreshTimer(nullptr),
+      m_breachChecker(nullptr)
 {
     setWindowTitle("CipherMesh - (Locked) - " + m_currentUserId);
+    
+    // Initialize breach checker
+    m_breachChecker = new BreachChecker(this);
     
     // Set a more reasonable default size and make it resizable
     resize(1000, 650);
@@ -645,12 +650,23 @@ void MainWindow::setupUi()
     m_timestampLabel->setWordWrap(true);
     detailsLayout->addRow("", m_timestampLabel);
     
+    // Breach check status label
+    m_breachStatusLabel = new QLabel("", this);
+    m_breachStatusLabel->setWordWrap(true);
+    m_breachStatusLabel->hide();
+    detailsLayout->addRow("", m_breachStatusLabel);
+    
     detailPageLayout->addLayout(detailsLayout, 1); 
 
     m_editEntryButton = new QPushButton("Edit Entry");
     m_editEntryButton->setObjectName("NewButton"); 
     m_editEntryButton->setEnabled(false); 
     m_editEntryButton->setMinimumWidth(100);
+    
+    m_checkBreachButton = new QPushButton("Check Breach");
+    m_checkBreachButton->setEnabled(false);
+    m_checkBreachButton->setMinimumWidth(110);
+    m_checkBreachButton->setToolTip("Check if this password has been compromised");
     
     m_viewHistoryButton = new QPushButton("View History");
     m_viewHistoryButton->setEnabled(false); 
@@ -664,7 +680,9 @@ void MainWindow::setupUi()
 
     QHBoxLayout* detailButtonLayout = new QHBoxLayout();
     detailButtonLayout->setContentsMargins(0, 12, 0, 0); 
-    detailButtonLayout->addStretch(1); 
+    detailButtonLayout->addStretch(1);
+    detailButtonLayout->addWidget(m_checkBreachButton);
+    detailButtonLayout->addSpacing(8);
     detailButtonLayout->addWidget(m_viewHistoryButton);
     detailButtonLayout->addSpacing(8);
     detailButtonLayout->addWidget(m_editEntryButton);
@@ -746,6 +764,7 @@ void MainWindow::setupUi()
     
     connect(m_editEntryButton, &QPushButton::clicked, this, &MainWindow::onEditEntryClicked);
     connect(m_deleteEntryButton, &QPushButton::clicked, this, &MainWindow::onDeleteEntryClicked);
+    connect(m_checkBreachButton, &QPushButton::clicked, this, &MainWindow::onCheckPasswordBreach);
     connect(m_viewHistoryButton, &QPushButton::clicked, this, &MainWindow::onViewPasswordHistoryClicked);
     
     connect(m_searchEdit, &QLineEdit::textChanged, this, &MainWindow::onSearchTextChanged); 
@@ -951,12 +970,16 @@ void MainWindow::onEntrySelected(QListWidgetItem* current)
         m_editEntryButton->setEnabled(false);
         m_deleteEntryButton->setEnabled(false);
         m_viewHistoryButton->setEnabled(false);
+        m_checkBreachButton->setEnabled(false);
+        m_breachStatusLabel->hide();
         return;
     }
 
     m_editEntryButton->setEnabled(true);
     m_deleteEntryButton->setEnabled(true);
     m_viewHistoryButton->setEnabled(true);
+    m_checkBreachButton->setEnabled(true);
+    m_breachStatusLabel->hide(); // Hide previous breach status when selecting new entry
 
     auto it = m_entryMap.find(current);
     if (it == m_entryMap.end()) return; 
@@ -1126,6 +1149,65 @@ void MainWindow::onCopyTOTPCode()
     using namespace CipherMesh::GUI;
     Toast* toast = new Toast("2FA code copied to clipboard", ToastType::Success, this);
     toast->show();
+}
+
+void MainWindow::onCheckPasswordBreach()
+{
+    if (!m_vault) return;
+    int entryId = getSelectedEntryId();
+    if (entryId == -1) return;
+    
+    // Disable button while checking
+    m_checkBreachButton->setEnabled(false);
+    m_checkBreachButton->setText("Checking...");
+    m_breachStatusLabel->setText("🔍 Checking password against breach database...");
+    m_breachStatusLabel->setStyleSheet("color: #666;");
+    m_breachStatusLabel->show();
+    
+    try {
+        std::string password = m_vault->getDecryptedPassword(entryId);
+        
+        m_breachChecker->checkPassword(password, [this](bool isCompromised, int count) {
+            m_checkBreachButton->setEnabled(true);
+            m_checkBreachButton->setText("Check Breach");
+            
+            if (count < 0) {
+                // API error occurred
+                m_breachStatusLabel->setText("⚠️ Unable to check breach status. Please try again.");
+                m_breachStatusLabel->setStyleSheet("color: #f57c00; font-weight: bold;");
+            } else if (isCompromised) {
+                m_breachStatusLabel->setText(QString("⚠️ WARNING: This password has been seen %1 times in data breaches!").arg(count));
+                m_breachStatusLabel->setStyleSheet("color: #d32f2f; font-weight: bold;");
+                
+                // Show toast notification
+                using namespace CipherMesh::GUI;
+                Toast* toast = new Toast("Password compromised! Consider changing it.", ToastType::Error, this);
+                toast->show();
+            } else {
+                m_breachStatusLabel->setText("✓ Good news! This password has not been found in known breaches.");
+                m_breachStatusLabel->setStyleSheet("color: #388e3c; font-weight: bold;");
+                
+                // Show toast notification
+                using namespace CipherMesh::GUI;
+                Toast* toast = new Toast("Password is safe!", ToastType::Success, this);
+                toast->show();
+            }
+            m_breachStatusLabel->show();
+        });
+        
+        // Securely wipe the password from memory
+        CipherMesh::Core::Crypto::secureWipe(password);
+    } catch (const std::exception& e) {
+        m_checkBreachButton->setEnabled(true);
+        m_checkBreachButton->setText("Check Breach");
+        m_breachStatusLabel->setText("❌ Could not decrypt password");
+        m_breachStatusLabel->setStyleSheet("color: #d32f2f;");
+        m_breachStatusLabel->show();
+        
+        using namespace CipherMesh::GUI;
+        Toast* toast = new Toast("Could not decrypt password", ToastType::Error, this);
+        toast->show();
+    }
 }
 
 void MainWindow::onToggleShowPassword(bool checked)

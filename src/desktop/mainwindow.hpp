@@ -18,7 +18,8 @@ class QPoint;
 class QTextEdit; 
 class QLabel; 
 class QThread;
-class QProgressBar; 
+class QProgressBar;
+class BreachChecker;
 
 namespace CipherMesh { namespace Core { class Vault; } }
 namespace CipherMesh { namespace P2P { class IP2PService; } } 
@@ -53,6 +54,7 @@ private slots:
     void onDuplicateEntryClicked();
     void onDeleteEntryClicked();
     void onViewPasswordHistoryClicked();
+    void onCheckPasswordBreach();
     
     void onGroupContextMenuRequested(const QPoint &pos); 
     void onEntryContextMenuRequested(const QPoint &pos); 
@@ -128,8 +130,12 @@ private:
     QPushButton* m_copyPasswordButton;
     QPushButton* m_showPasswordButton;
     QPushButton* m_viewHistoryButton;
+    QPushButton* m_checkBreachButton;
     QPushButton* m_editEntryButton;
     QPushButton* m_deleteEntryButton;
+    
+    BreachChecker* m_breachChecker;
+    QLabel* m_breachStatusLabel;
     
     CipherMesh::Core::Vault* m_vault;
     CipherMesh::P2P::IP2PService* m_p2pService; 
