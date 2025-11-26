@@ -2,6 +2,7 @@
 #include "passwordgeneratordialog.hpp"
 #include "locationeditdialog.hpp"
 #include "passwordstrength.hpp"
+#include "breach_checker.hpp"
 #include "crypto.hpp" // <-- FIXED PATH
 #include "vault.hpp"  // <-- FIXED PATH
 #include <QVBoxLayout>
@@ -17,12 +18,14 @@
 
 NewEntryDialog::NewEntryDialog(CipherMesh::Core::Vault* vault, QWidget *parent)
     : QDialog(parent), m_vault(vault), m_isEditMode(false), m_editingEntryId(-1) {
+    m_breachChecker = new BreachChecker(this);
     setupUi();
     setWindowTitle("Create New Entry");
 }
 
 NewEntryDialog::NewEntryDialog(CipherMesh::Core::Vault* vault, const CipherMesh::Core::VaultEntry& entry, QWidget *parent)
     : QDialog(parent), m_vault(vault), m_isEditMode(true), m_editingEntryId(entry.id) {
+    m_breachChecker = new BreachChecker(this);
     setupUi();
     setWindowTitle("Edit Entry");
     m_titleLabel->setText("Edit Entry");
@@ -91,10 +94,18 @@ void NewEntryDialog::setupUi() {
     QPushButton* generateButton = new QPushButton("Generate");
     generateButton->setFixedWidth(100);
     passLayout->addWidget(generateButton);
+    m_checkBreachButton = new QPushButton("Check Breach");
+    m_checkBreachButton->setFixedWidth(120);
+    passLayout->addWidget(m_checkBreachButton);
     
     m_confirmEdit = new QLineEdit(this);
     m_confirmEdit->setEchoMode(QLineEdit::Password);
     m_confirmEdit->setPlaceholderText("Confirm password");
+    
+    // --- Breach Status Label ---
+    m_breachStatusLabel = new QLabel("", this);
+    m_breachStatusLabel->setWordWrap(true);
+    m_breachStatusLabel->hide();
     
     // --- Strength Meter ---
     m_strengthBar = new QProgressBar(this);
@@ -135,6 +146,7 @@ void NewEntryDialog::setupUi() {
     formLayout->addRow("", locationButtonLayout);
     formLayout->addRow("Notes:", m_notesEdit);
     formLayout->addRow(m_passwordLabel, passLayout);
+    formLayout->addRow("", m_breachStatusLabel);
     formLayout->addRow("Confirm:", m_confirmEdit);
     formLayout->addRow("Strength:", strengthLayout);
     
@@ -154,6 +166,7 @@ void NewEntryDialog::setupUi() {
     connect(m_passwordEdit, &QLineEdit::textChanged, this, &NewEntryDialog::onPasswordChanged);
     connect(m_confirmEdit, &QLineEdit::textChanged, this, &NewEntryDialog::onConfirmPasswordChanged);
     connect(generateButton, &QPushButton::clicked, this, &NewEntryDialog::onGeneratePassword);
+    connect(m_checkBreachButton, &QPushButton::clicked, this, &NewEntryDialog::onCheckBreach);
     
     // --- NEW CONNECTIONS ---
     connect(addLocationButton, &QPushButton::clicked, this, &NewEntryDialog::onAddLocation);
@@ -306,4 +319,34 @@ CipherMesh::Core::VaultEntry NewEntryDialog::getEntryData() const {
 
 std::string NewEntryDialog::getPassword() const {
     return m_passwordEdit->text().toStdString();
+}
+
+void NewEntryDialog::onCheckBreach() {
+    QString password = m_passwordEdit->text();
+    if (password.isEmpty()) {
+        m_breachStatusLabel->setText("⚠️ Please enter a password first");
+        m_breachStatusLabel->setStyleSheet("color: #f57c00;");
+        m_breachStatusLabel->show();
+        return;
+    }
+    
+    m_checkBreachButton->setEnabled(false);
+    m_checkBreachButton->setText("Checking...");
+    m_breachStatusLabel->setText("🔍 Checking password against breach database...");
+    m_breachStatusLabel->setStyleSheet("color: #666;");
+    m_breachStatusLabel->show();
+    
+    m_breachChecker->checkPassword(password.toStdString(), [this](bool isCompromised, int count) {
+        m_checkBreachButton->setEnabled(true);
+        m_checkBreachButton->setText("Check Breach");
+        
+        if (isCompromised) {
+            m_breachStatusLabel->setText(QString("⚠️ WARNING: This password has been seen %1 times in data breaches!").arg(count));
+            m_breachStatusLabel->setStyleSheet("color: #d32f2f; font-weight: bold;");
+        } else {
+            m_breachStatusLabel->setText("✓ Good news! This password has not been found in known breaches.");
+            m_breachStatusLabel->setStyleSheet("color: #388e3c;");
+        }
+        m_breachStatusLabel->show();
+    });
 }

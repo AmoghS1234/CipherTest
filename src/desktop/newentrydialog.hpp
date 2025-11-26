@@ -11,6 +11,7 @@ class QPushButton;
 class QTextEdit; 
 class QListWidget;
 class QProgressBar;
+class BreachChecker;
 namespace CipherMesh { namespace Core { class Vault; } } 
 
 class NewEntryDialog : public QDialog {
@@ -35,6 +36,7 @@ private slots:
     void onEditLocation();   
     void onRemoveLocation(); 
     void updateStrengthMeter();
+    void onCheckBreach();
 
 private:
     void setupUi();
@@ -63,6 +65,9 @@ private:
     
     QProgressBar* m_strengthBar;
     QLabel* m_strengthLabel;
+    QPushButton* m_checkBreachButton;
+    QLabel* m_breachStatusLabel;
+    BreachChecker* m_breachChecker;
     
     // Map to store temporary location data in the list
     QMap<QListWidgetItem*, CipherMesh::Core::Location> m_locationItemMap;
