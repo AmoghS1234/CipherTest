@@ -34,6 +34,7 @@
 #include <QKeySequence>
 #include <QDateTime>
 #include <QStringList>
+#include <QProgressBar>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -583,13 +584,47 @@ void MainWindow::setupUi()
     passLayout->addWidget(m_showPasswordButton);
     detailsLayout->addRow("Password:", passLayout);
     
-    // TOTP Code display
+    // TOTP Code display with timer
     m_totpCodeLabel = new QLabel("------", this);
     m_totpCodeLabel->setObjectName("TOTPCodeLabel");
     m_totpCodeLabel->setFont(QFont("Monospace", 14, QFont::Bold));
     m_totpCodeLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_totpCodeLabel->setStyleSheet("color: #2196f3; padding: 4px;");
-    detailsLayout->addRow("2FA Code:", m_totpCodeLabel);
+    
+    // TOTP Timer Progress Bar
+    m_totpTimerBar = new QProgressBar(this);
+    m_totpTimerBar->setMaximum(30);
+    m_totpTimerBar->setValue(30);
+    m_totpTimerBar->setTextVisible(false);
+    m_totpTimerBar->setMaximumHeight(8);
+    m_totpTimerBar->setStyleSheet(R"(
+        QProgressBar {
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #333;
+        }
+        QProgressBar::chunk {
+            background-color: #2196f3;
+            border-radius: 3px;
+        }
+    )");
+    
+    m_totpTimerLabel = new QLabel("", this);
+    m_totpTimerLabel->setStyleSheet("color: #999; font-size: 11px;");
+    
+    m_copyTOTPButton = new QPushButton(this);
+    m_copyTOTPButton->setIcon(loadSvgIcon(g_copyIconSvg, m_actionIconColor));
+    m_copyTOTPButton->setToolTip("Copy 2FA Code");
+    m_copyTOTPButton->setFixedWidth(40);
+    
+    QHBoxLayout* totpLayout = new QHBoxLayout();
+    totpLayout->setSpacing(12);
+    totpLayout->addWidget(m_totpCodeLabel);
+    totpLayout->addWidget(m_totpTimerBar, 1);
+    totpLayout->addWidget(m_totpTimerLabel);
+    totpLayout->addWidget(m_copyTOTPButton);
+    
+    detailsLayout->addRow("2FA Code:", totpLayout);
 
     m_locationsList = new QListWidget(this);
     m_locationsList->setMinimumHeight(80);
@@ -703,6 +738,7 @@ void MainWindow::setupUi()
     connect(m_entryListWidget, &QListWidget::currentItemChanged, this, &MainWindow::onEntrySelected);
     connect(m_copyUsernameButton, &QPushButton::clicked, this, &MainWindow::onCopyUsername);
     connect(m_copyPasswordButton, &QPushButton::clicked, this, &MainWindow::onCopyPassword);
+    connect(m_copyTOTPButton, &QPushButton::clicked, this, &MainWindow::onCopyTOTPCode);
     connect(m_showPasswordButton, &QPushButton::toggled, this, &MainWindow::onToggleShowPassword);
     
     connect(m_newGroupButton, &QPushButton::clicked, this, &MainWindow::onNewGroupClicked);
@@ -1072,6 +1108,24 @@ void MainWindow::onCopyPassword()
         Toast* toast = new Toast("Could not decrypt password", ToastType::Error, this);
         toast->show();
     }
+}
+
+void MainWindow::onCopyTOTPCode()
+{
+    QString code = m_totpCodeLabel->text();
+    
+    // Don't copy if no valid code is displayed
+    if (code == "------" || code == "INVALID" || code == "ERROR") {
+        return;
+    }
+    
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(code);
+    
+    // Show toast notification
+    using namespace CipherMesh::GUI;
+    Toast* toast = new Toast("2FA code copied to clipboard", ToastType::Success, this);
+    toast->show();
 }
 
 void MainWindow::onToggleShowPassword(bool checked)
@@ -1559,12 +1613,16 @@ void MainWindow::refreshTOTPCode() {
     QListWidgetItem* currentItem = m_entryListWidget->currentItem();
     if (!currentItem || !m_vault) {
         m_totpCodeLabel->setText("------");
+        m_totpTimerBar->hide();
+        m_totpTimerLabel->hide();
         return;
     }
     
     auto it = m_entryMap.find(currentItem);
     if (it == m_entryMap.end()) {
         m_totpCodeLabel->setText("------");
+        m_totpTimerBar->hide();
+        m_totpTimerLabel->hide();
         return;
     }
     
@@ -1574,6 +1632,8 @@ void MainWindow::refreshTOTPCode() {
     if (entry.totp_secret.empty()) {
         m_totpCodeLabel->setText("------");
         m_totpCodeLabel->setStyleSheet("color: #666; padding: 4px;");
+        m_totpTimerBar->hide();
+        m_totpTimerLabel->hide();
         return;
     }
     
@@ -1585,6 +1645,8 @@ void MainWindow::refreshTOTPCode() {
         if (code.empty()) {
             m_totpCodeLabel->setText("INVALID");
             m_totpCodeLabel->setStyleSheet("color: #d32f2f; padding: 4px;");
+            m_totpTimerBar->hide();
+            m_totpTimerLabel->hide();
             return;
         }
         
@@ -1595,12 +1657,45 @@ void MainWindow::refreshTOTPCode() {
         long long currentTime = std::time(nullptr);
         int timeRemaining = 30 - (currentTime % 30);
         
+        // Update progress bar and label
+        m_totpTimerBar->setValue(timeRemaining);
+        m_totpTimerLabel->setText(QString("%1s").arg(timeRemaining));
+        m_totpTimerBar->show();
+        m_totpTimerLabel->show();
+        
         // Change color to warning when less than 5 seconds remain
         if (timeRemaining <= 5) {
             m_totpCodeLabel->setStyleSheet("color: #ff9800; padding: 4px;");
+            m_totpTimerBar->setStyleSheet(R"(
+                QProgressBar {
+                    border: 1px solid #555;
+                    border-radius: 4px;
+                    background-color: #333;
+                }
+                QProgressBar::chunk {
+                    background-color: #ff9800;
+                    border-radius: 3px;
+                }
+            )");
+            m_totpTimerLabel->setStyleSheet("color: #ff9800; font-size: 11px;");
+        } else {
+            m_totpTimerBar->setStyleSheet(R"(
+                QProgressBar {
+                    border: 1px solid #555;
+                    border-radius: 4px;
+                    background-color: #333;
+                }
+                QProgressBar::chunk {
+                    background-color: #2196f3;
+                    border-radius: 3px;
+                }
+            )");
+            m_totpTimerLabel->setStyleSheet("color: #999; font-size: 11px;");
         }
     } catch (const std::exception& e) {
         m_totpCodeLabel->setText("ERROR");
         m_totpCodeLabel->setStyleSheet("color: #d32f2f; padding: 4px;");
+        m_totpTimerBar->hide();
+        m_totpTimerLabel->hide();
     }
 }

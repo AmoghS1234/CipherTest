@@ -17,7 +17,8 @@ class QByteArray;
 class QPoint;
 class QTextEdit; 
 class QLabel; 
-class QThread; 
+class QThread;
+class QProgressBar; 
 
 namespace CipherMesh { namespace Core { class Vault; } }
 namespace CipherMesh { namespace P2P { class IP2PService; } } 
@@ -42,6 +43,7 @@ private slots:
     void onEntrySelected(QListWidgetItem* current);
     void onCopyUsername();
     void onCopyPassword();
+    void onCopyTOTPCode();
     void onToggleShowPassword(bool checked);
     void onNewGroupClicked();
     void onDeleteGroupClicked();
@@ -117,6 +119,9 @@ private:
     QLabel* m_timestampLabel; // NEW: Display entry timestamps
     
     QLabel* m_totpCodeLabel;
+    QProgressBar* m_totpTimerBar;
+    QLabel* m_totpTimerLabel;
+    QPushButton* m_copyTOTPButton;
     QTimer* m_totpRefreshTimer;
     
     QPushButton* m_copyUsernameButton;
