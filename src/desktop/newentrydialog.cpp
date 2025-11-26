@@ -350,7 +350,11 @@ void NewEntryDialog::onCheckBreach() {
         m_checkBreachButton->setEnabled(true);
         m_checkBreachButton->setText("Check Breach");
         
-        if (isCompromised) {
+        if (count < 0) {
+            // API error occurred
+            m_breachStatusLabel->setText("⚠️ Unable to check breach status. Please try again.");
+            m_breachStatusLabel->setStyleSheet("color: #f57c00;");
+        } else if (isCompromised) {
             m_breachStatusLabel->setText(QString("⚠️ WARNING: This password has been seen %1 times in data breaches!").arg(count));
             m_breachStatusLabel->setStyleSheet("color: #d32f2f; font-weight: bold;");
         } else {

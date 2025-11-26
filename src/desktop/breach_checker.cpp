@@ -21,7 +21,7 @@ void BreachChecker::checkPassword(const std::string& password, std::function<voi
     connect(reply, &QNetworkReply::finished, [reply, suffix, callback]() {
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Breach check API failed:" << reply->errorString();
-            callback(false, 0); // Fail safe
+            callback(false, -1); // Return -1 to indicate error state (not truly safe)
             reply->deleteLater();
             return;
         }

@@ -71,7 +71,8 @@ std::string TOTP::generateCode(const std::string& secretKey) {
     std::vector<uint8_t> key = decodeBase32(secretKey);
     
     if (key.empty()) {
-        return "000000"; // Return zeros if key is invalid
+        // Invalid key - return empty string to indicate error
+        return "";
     }
 
     // 3. HMAC-SHA1

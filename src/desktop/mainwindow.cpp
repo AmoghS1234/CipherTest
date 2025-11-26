@@ -1580,6 +1580,14 @@ void MainWindow::refreshTOTPCode() {
     // Generate TOTP code
     try {
         std::string code = CipherMesh::Utils::TOTP::generateCode(entry.totp_secret);
+        
+        // Check if code generation failed (empty string indicates error)
+        if (code.empty()) {
+            m_totpCodeLabel->setText("INVALID");
+            m_totpCodeLabel->setStyleSheet("color: #d32f2f; padding: 4px;");
+            return;
+        }
+        
         m_totpCodeLabel->setText(QString::fromStdString(code));
         m_totpCodeLabel->setStyleSheet("color: #2196f3; padding: 4px;");
         
