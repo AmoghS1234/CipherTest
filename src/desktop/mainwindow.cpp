@@ -661,25 +661,27 @@ void MainWindow::setupUi()
     
     detailPageLayout->addLayout(detailsLayout, 1); 
 
-    m_editEntryButton = new QPushButton("Edit Entry");
+    m_editEntryButton = new QPushButton("Edit");
     m_editEntryButton->setObjectName("NewButton"); 
     m_editEntryButton->setEnabled(false); 
-    m_editEntryButton->setMinimumWidth(100);
+    m_editEntryButton->setMinimumWidth(70);
+    m_editEntryButton->setToolTip("Edit this entry (Ctrl+E)");
     
     m_checkBreachButton = new QPushButton("Breach?");
     m_checkBreachButton->setEnabled(false);
-    m_checkBreachButton->setMinimumWidth(80);
+    m_checkBreachButton->setMinimumWidth(70);
     m_checkBreachButton->setToolTip("Check if this password has been compromised in data breaches");
     
-    m_viewHistoryButton = new QPushButton("View History");
+    m_viewHistoryButton = new QPushButton("History");
     m_viewHistoryButton->setEnabled(false); 
-    m_viewHistoryButton->setMinimumWidth(110);
+    m_viewHistoryButton->setMinimumWidth(70);
     m_viewHistoryButton->setToolTip("View password history for this entry");
     
-    m_deleteEntryButton = new QPushButton("Delete Entry");
+    m_deleteEntryButton = new QPushButton("Delete");
     m_deleteEntryButton->setObjectName("DeleteButton"); 
     m_deleteEntryButton->setEnabled(false); 
-    m_deleteEntryButton->setMinimumWidth(100);
+    m_deleteEntryButton->setMinimumWidth(70);
+    m_deleteEntryButton->setToolTip("Delete this entry (Delete key)");
 
     QHBoxLayout* detailButtonLayout = new QHBoxLayout();
     detailButtonLayout->setContentsMargins(0, 12, 0, 0); 
@@ -782,6 +784,30 @@ void MainWindow::setupKeyboardShortcuts()
         m_searchEdit->setFocus();
         m_searchEdit->selectAll();
     });
+    
+    // Ctrl+N for new entry
+    QShortcut* newEntryShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
+    connect(newEntryShortcut, &QShortcut::activated, this, &MainWindow::onNewEntryClicked);
+    
+    // Ctrl+G for new group
+    QShortcut* newGroupShortcut = new QShortcut(QKeySequence("Ctrl+G"), this);
+    connect(newGroupShortcut, &QShortcut::activated, this, &MainWindow::onNewGroupClicked);
+    
+    // Ctrl+E to edit selected entry
+    QShortcut* editEntryShortcut = new QShortcut(QKeySequence("Ctrl+E"), this);
+    connect(editEntryShortcut, &QShortcut::activated, this, &MainWindow::onEditEntryClicked);
+    
+    // Delete key to delete selected entry
+    QShortcut* deleteEntryShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), this);
+    connect(deleteEntryShortcut, &QShortcut::activated, this, [this]() {
+        if (m_deleteEntryButton->isEnabled()) {
+            onDeleteEntryClicked();
+        }
+    });
+    
+    // Ctrl+L to lock vault
+    QShortcut* lockShortcut = new QShortcut(QKeySequence("Ctrl+L"), this);
+    connect(lockShortcut, &QShortcut::activated, this, &MainWindow::onLockVault);
 }
 
 void MainWindow::updateWindowTitle()
@@ -1042,10 +1068,21 @@ void MainWindow::loadEntries(const std::vector<CipherMesh::Core::VaultEntry>& en
     m_entryMap.clear();
     m_detailsStack->setCurrentIndex(0);
     
-    QIcon entryIcon = loadSvgIcon(g_keyIconSvg, m_uiIconColor); 
+    QIcon entryIcon = loadSvgIcon(g_keyIconSvg, m_uiIconColor);
 
     for (const auto& entry : entries) {
-        QListWidgetItem* item = new QListWidgetItem(entryIcon, QString::fromStdString(entry.title));
+        QString displayText = QString::fromStdString(entry.title);
+        
+        // Add visual indicator for entry type
+        if (entry.entry_type == "secure_note") {
+            displayText = "📝 " + displayText;
+        } else if (!entry.totp_secret.empty()) {
+            displayText = "🔐 " + displayText; // Show lock with key for 2FA-enabled passwords
+        } else {
+            displayText = "🔑 " + displayText;
+        }
+        
+        QListWidgetItem* item = new QListWidgetItem(entryIcon, displayText);
         m_entryListWidget->addItem(item);
         m_entryMap[item] = entry;
     }
