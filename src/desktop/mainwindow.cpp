@@ -666,10 +666,10 @@ void MainWindow::setupUi()
     m_editEntryButton->setEnabled(false); 
     m_editEntryButton->setMinimumWidth(100);
     
-    m_checkBreachButton = new QPushButton("Check Breach");
+    m_checkBreachButton = new QPushButton("Breach?");
     m_checkBreachButton->setEnabled(false);
-    m_checkBreachButton->setMinimumWidth(110);
-    m_checkBreachButton->setToolTip("Check if this password has been compromised");
+    m_checkBreachButton->setMinimumWidth(80);
+    m_checkBreachButton->setToolTip("Check if this password has been compromised in data breaches");
     
     m_viewHistoryButton = new QPushButton("View History");
     m_viewHistoryButton->setEnabled(false); 
@@ -1162,7 +1162,7 @@ void MainWindow::onCheckPasswordBreach()
     
     // Disable button while checking
     m_checkBreachButton->setEnabled(false);
-    m_checkBreachButton->setText("Checking...");
+    m_checkBreachButton->setText("...");
     m_breachStatusLabel->setText("🔍 Checking password against breach database...");
     m_breachStatusLabel->setStyleSheet("color: #666;");
     m_breachStatusLabel->show();
@@ -1172,7 +1172,7 @@ void MainWindow::onCheckPasswordBreach()
         
         m_breachChecker->checkPassword(password, [this](bool isCompromised, int count) {
             m_checkBreachButton->setEnabled(true);
-            m_checkBreachButton->setText("Check Breach");
+            m_checkBreachButton->setText("Breach?");
             
             if (count < 0) {
                 // API error occurred
@@ -1202,7 +1202,7 @@ void MainWindow::onCheckPasswordBreach()
         CipherMesh::Core::Crypto::secureWipe(password);
     } catch (const std::exception& e) {
         m_checkBreachButton->setEnabled(true);
-        m_checkBreachButton->setText("Check Breach");
+        m_checkBreachButton->setText("Breach?");
         m_breachStatusLabel->setText("❌ Could not decrypt password");
         m_breachStatusLabel->setStyleSheet("color: #d32f2f;");
         m_breachStatusLabel->show();

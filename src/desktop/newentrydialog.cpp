@@ -95,8 +95,9 @@ void NewEntryDialog::setupUi() {
     QPushButton* generateButton = new QPushButton("Generate");
     generateButton->setFixedWidth(100);
     passLayout->addWidget(generateButton);
-    m_checkBreachButton = new QPushButton("Check Breach");
-    m_checkBreachButton->setFixedWidth(120);
+    m_checkBreachButton = new QPushButton("Breach?");
+    m_checkBreachButton->setFixedWidth(80);
+    m_checkBreachButton->setToolTip("Check if password has been compromised in data breaches");
     passLayout->addWidget(m_checkBreachButton);
     
     m_confirmEdit = new QLineEdit(this);
@@ -344,14 +345,14 @@ void NewEntryDialog::onCheckBreach() {
     }
     
     m_checkBreachButton->setEnabled(false);
-    m_checkBreachButton->setText("Checking...");
+    m_checkBreachButton->setText("...");
     m_breachStatusLabel->setText("🔍 Checking password against breach database...");
     m_breachStatusLabel->setStyleSheet("color: #666;");
     m_breachStatusLabel->show();
     
     m_breachChecker->checkPassword(password.toStdString(), [this](bool isCompromised, int count) {
         m_checkBreachButton->setEnabled(true);
-        m_checkBreachButton->setText("Check Breach");
+        m_checkBreachButton->setText("Breach?");
         
         if (count < 0) {
             // API error occurred
